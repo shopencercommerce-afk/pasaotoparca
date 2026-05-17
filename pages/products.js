@@ -25,12 +25,8 @@ function normalizeText(text) {
     .trim()
 }
 
-function slugify(text) {
-  return normalizeText(text).replace(/\s+/g, '-')
-}
-
 function cleanImagePath(image) {
-  if (!image) return ''
+  if (!image) return '/logo.svg'
   return '/' + image.replace(/\\/g, '/').replace(/^images\//, 'images/')
 }
 
@@ -59,9 +55,18 @@ function productMatchesBrand(product, brandSlug) {
 
 function productMatchesModel(product, modelSlug) {
   if (!modelSlug) return true
-  const modelText = normalizeText(modelSlug).replace(/-/g, ' ')
+  const wanted = normalizeText(modelSlug).replace(/-/g, ' ')
   const productText = normalizeText(`${product.title || ''} ${product.rawText || ''}`)
-  return productText.includes(modelText)
+
+  if (wanted === 'model 3') {
+    return productText.includes('model 3') || productText.includes('model 3 y') || productText.includes('model 3 y') || productText.includes('model 3y')
+  }
+
+  if (wanted === 'model y') {
+    return productText.includes('model y') || productText.includes('model 3 y') || productText.includes('model 3y')
+  }
+
+  return productText.includes(wanted)
 }
 
 export default function ProductsPage() {
@@ -79,7 +84,10 @@ export default function ProductsPage() {
   return (
     <main style={{ fontFamily: 'Arial', background: '#0b0b0b', color: '#fff', minHeight: '100vh' }}>
       <header style={{ padding: '24px 40px', borderBottom: '1px solid #222', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <a href="/" style={{ color: '#fff', textDecoration: 'none', fontSize: '24px', fontWeight: 'bold' }}>Paşa Oto Parça</a>
+        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#fff', textDecoration: 'none', fontSize: '24px', fontWeight: 'bold' }}>
+          <img src="/logo.svg" alt="Paşa Oto Parça" style={{ width: '56px', height: '56px', objectFit: 'contain', background: '#fff', borderRadius: '10px', padding: '4px' }} />
+          Paşa Oto Parça
+        </a>
         <a href={`https://wa.me/${whatsappNumber}?text=Merhaba%2C%20urun%20siparisi%20vermek%20istiyorum.`} style={{ color: '#071b0d', textDecoration: 'none', background: '#25D366', padding: '12px 18px', borderRadius: '10px', fontWeight: 'bold' }}>WhatsApp Sipariş</a>
       </header>
 
@@ -107,7 +115,7 @@ export default function ProductsPage() {
           return (
             <article key={`${product.no}-${product.refNo}`} style={{ background: '#151515', border: '1px solid #242424', borderRadius: '18px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               <div style={{ height: '210px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px' }}>
-                {image ? <img loading="lazy" src={image} alt={product.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ color: '#777' }}>Görsel yok</span>}
+                <img loading="lazy" src={image} alt={product.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               </div>
               <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
                 <span style={{ color: '#999', fontSize: '13px' }}>{product.category || 'Diğer'} • {brandName}</span>
