@@ -50,189 +50,187 @@ function salePrice(product) {
   return formatPrice(cost * 1.25)
 }
 
-const featuredProducts = products
-  .filter(product => product.image && product.title)
-  .slice(0, 6)
+const featuredProducts = products.filter(p => p.image && p.title).slice(0, 6)
 
-const serviceItems = [
-  { title: 'Orijinal & Kaliteli Ürün', text: 'Güvenilir ve garantili parçalar' },
-  { title: 'Hızlı Kargo', text: 'Türkiye’nin her yerine' },
-  { title: '7/24 Destek', text: 'WhatsApp ile anında destek' },
-  { title: 'Güvenli Sipariş', text: 'Parça koduyla teklif alın' }
+const stats = [
+  ['238+', 'Aktif ürün'],
+  ['6', 'Araç markası'],
+  ['24/7', 'WhatsApp destek']
+]
+
+const services = [
+  ['Premium Katalog', 'Marka ve modele göre hızlı parça keşfi.'],
+  ['Parça Kodu ile Teklif', 'Ürün kodunu gönderin, doğru parçayı teyit edelim.'],
+  ['Yeni Nesil Araç Odaklı', 'Tesla, BYD, Togg, MG, Chery ve Skywell parçaları.']
 ]
 
 export default function Home() {
   return (
     <main className="page">
-      <div className="topBar">
-        <div><strong>Hızlı Kargo</strong><span>Türkiye’nin Her Yerine</span></div>
-        <div><strong>%100 Güvenli Alışveriş</strong><span>SSL Sertifikalı Altyapı</span></div>
-        <div><strong>Destek Hattı</strong><span>WhatsApp ile teklif alın</span></div>
-      </div>
-
       <header className="header">
-        <a href="/" className="logoArea">
-          <img src="/logo.svg" alt="Paşa Oto Parça" />
-        </a>
-        <div className="searchBox">
-          <span>Ürün, kategori veya parça kodu ara...</span>
-          <b>⌕</b>
-        </div>
-        <div className="accountArea">
-          <a href={wpUrl}>Hesabım<br /><span>Giriş Yap</span></a>
-          <a href="/cart/">Sepetim<br /><span>0,00 TL</span></a>
-        </div>
+        <a href="/" className="logo"><img src="/logo.svg" alt="Paşa Oto Parça" /></a>
+        <nav>
+          <a href="/products/">Katalog</a>
+          {brands.slice(0, 5).map(b => <a key={b.slug} href={productsUrl(b.slug)}>{b.name}</a>)}
+        </nav>
+        <a href={wpUrl} className="headerCta">WhatsApp Teklif</a>
       </header>
 
-      <nav className="mainNav">
-        <a href="/products/" className="categoryBtn">☰ TÜM KATEGORİLER</a>
-        <a href="/">Ana Sayfa</a>
-        <a href="/products/">Katalog</a>
-        <a href={wpUrl}>İletişim</a>
-        {brands.map(brand => <a key={brand.slug} href={productsUrl(brand.slug)}>{brand.name}</a>)}
-      </nav>
-
       <section className="hero">
-        <div className="heroText">
-          <span>ELEKTRİKLİ VE YENİ NESİL ARAÇLAR İÇİN</span>
-          <h1>Oto Yedek Parçada Profesyonel Çözüm</h1>
-          <p>Elektrikli ve yeni nesil araçlar için kaporta, mekanik, elektrik ve aksesuar ürünlerini tek katalogda inceleyin. Parça koduyla hızlı teklif alın.</p>
+        <div className="heroCopy">
+          <span className="eyebrow">PAŞA OTO PARÇA SHOWROOM</span>
+          <h1>Yeni nesil araçlar için premium yedek parça kataloğu.</h1>
+          <p>Elektrikli ve modern araçlara özel kaporta, mekanik, elektrik ve aksesuar parçalarını tek bir sade katalogda inceleyin. Parça koduyla hızlı teklif alın.</p>
           <div className="heroActions">
-            <a href="/products/" className="redBtn">KATALOĞU İNCELE ›</a>
-            <a href={wpUrl} className="outlineBtn">WHATSAPP’TAN SOR</a>
+            <a href="/products/" className="darkBtn">Kataloğu İncele</a>
+            <a href={wpUrl} className="lightBtn">WhatsApp’tan Sor</a>
+          </div>
+          <div className="stats">
+            {stats.map(([value, label]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}
           </div>
         </div>
-        <div className="carVisual">
-          <div className="carShape" />
+        <div className="heroVisual">
+          <div className="carLine" />
+          <div className="heroLogo"><img src="/logo.svg" alt="Paşa Oto Parça" /></div>
         </div>
       </section>
 
-      <section className="serviceStrip">
-        {serviceItems.map(item => (
-          <div key={item.title}>
-            <strong>{item.title}</strong>
-            <span>{item.text}</span>
-          </div>
-        ))}
+      <section className="services">
+        {services.map(([title, text]) => <div key={title}><strong>{title}</strong><span>{text}</span></div>)}
       </section>
 
       <section className="section">
-        <div className="titleBlock">
-          <h2>Markalara Göre Ürünler</h2>
-          <span />
+        <div className="sectionHead">
+          <span>MARKALAR</span>
+          <h2>Aracınıza göre hızlı seçim</h2>
         </div>
         <div className="brandGrid">
           {brands.map(brand => (
-            <a key={brand.slug} href={productsUrl(brand.slug)} className="brandCard">
-              <div className="brandIcon">{brand.name.slice(0, 1)}</div>
+            <a className="brandCard" href={productsUrl(brand.slug)} key={brand.slug}>
+              <span>{brand.name.charAt(0)}</span>
               <strong>{brand.name}</strong>
+              <small>{brand.models.length} model</small>
             </a>
           ))}
         </div>
-        <a href="/products/" className="centerBtn">TÜM MARKALARI GÖR ›</a>
       </section>
 
-      <section className="section productsSection">
-        <div className="titleBlock">
-          <h2>Öne Çıkan Ürünler</h2>
-          <span />
+      <section className="section productSection">
+        <div className="sectionHead center">
+          <span>ÖNE ÇIKANLAR</span>
+          <h2>Popüler parçalar</h2>
         </div>
         <div className="productGrid">
           {featuredProducts.map(product => (
-            <article key={`${product.no || product.id}-${productCode(product)}`} className="productCard">
-              <a href="/products/" className="productImg"><img src={cleanImagePath(product.image)} alt={product.title} /></a>
-              <div className="productInfo">
+            <article className="productCard" key={`${product.no || product.id}-${productCode(product)}`}>
+              <a href="/products/" className="productImage"><img src={cleanImagePath(product.image)} alt={product.title} /></a>
+              <div>
                 <h3>{product.title}</h3>
                 <p>{productCode(product)}</p>
                 <strong>{salePrice(product)}</strong>
-                <a href={wpUrl}>SEPETE EKLE ›</a>
+                <a href={wpUrl}>Teklif Al</a>
               </div>
             </article>
           ))}
         </div>
-        <a href="/products/" className="centerBtn">TÜM ÜRÜNLERİ GÖR ›</a>
+        <a href="/products/" className="allProducts">Tüm Ürünleri Gör</a>
       </section>
 
-      <section className="quickCards">
-        <div><strong>Parça Koduyla Hızlı Teklif</strong><span>Parça kodunu gönderin, sizi arayalım.</span></div>
-        <div><strong>Katalog İncele</strong><span>Tüm ürünleri marka ve modele göre görün.</span></div>
-        <div><strong>WhatsApp Destek</strong><span>Anında destek için WhatsApp’tan yazın.</span></div>
-        <div><strong>Kurumsal Çözümler</strong><span>Toptan ve bayilik için iletişime geçin.</span></div>
+      <section className="bottomCta">
+        <div>
+          <span>PARÇA KODUNUZ HAZIR MI?</span>
+          <h2>Doğru parçayı birlikte teyit edelim.</h2>
+        </div>
+        <a href={wpUrl}>WhatsApp’tan Yaz</a>
       </section>
 
-      <a href={wpUrl} className="floatingWp">WhatsApp’tan Yazın</a>
+      <a href={wpUrl} className="floatWp">WhatsApp</a>
 
       <style jsx>{`
         * { box-sizing: border-box; }
-        .page { min-height: 100vh; background: #f6f7f9; color: #151515; font-family: Arial, sans-serif; overflow-x: hidden; }
+        .page { min-height: 100vh; background: #f4f2ee; color: #111; font-family: Arial, sans-serif; overflow-x: hidden; }
         a { color: inherit; text-decoration: none; }
-        .topBar { background: #fff; border-bottom: 1px solid #e7e7e7; display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; padding: 12px 46px; color: #111; }
-        .topBar div { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
-        .topBar span { color: #6d6d6d; }
-        .header { background: #fff; display: grid; grid-template-columns: 230px minmax(280px,1fr) 220px; align-items: center; gap: 28px; padding: 22px 46px; border-bottom: 1px solid #ececec; }
-        .logoArea img { width: 170px; max-height: 95px; object-fit: contain; display: block; }
-        .searchBox { border: 1px solid #d8d8d8; border-radius: 8px; height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; color: #777; background: #fff; }
-        .searchBox b { font-size: 24px; color: #222; }
-        .accountArea { display: flex; justify-content: flex-end; gap: 18px; font-weight: 800; }
-        .accountArea span { color: #777; font-size: 13px; font-weight: 500; }
-        .mainNav { height: 58px; background: #fff; border-bottom: 1px solid #e5e5e5; display: flex; align-items: center; gap: 24px; padding: 0 46px; font-weight: 800; overflow-x: auto; white-space: nowrap; }
-        .categoryBtn { color: #d71920; }
-        .hero { min-height: 430px; background: linear-gradient(110deg,#ffffff 0%,#f1f3f5 45%,#dfe4e9 100%); display: grid; grid-template-columns: minmax(320px,520px) 1fr; align-items: center; gap: 30px; padding: 58px 46px; border-bottom: 1px solid #e2e2e2; position: relative; overflow: hidden; }
-        .heroText { max-width: 560px; position: relative; z-index: 2; }
-        .heroText span { color: #d71920; font-size: 13px; font-weight: 900; letter-spacing: .3px; }
-        .heroText h1 { font-size: clamp(38px,5vw,58px); line-height: 1.08; margin: 16px 0; letter-spacing: -1.8px; }
-        .heroText p { color: #555; font-size: 18px; line-height: 1.65; margin: 0; }
-        .heroActions { display: flex; gap: 18px; margin-top: 34px; flex-wrap: wrap; }
-        .redBtn, .outlineBtn { min-height: 56px; display: inline-flex; align-items: center; justify-content: center; padding: 0 28px; border-radius: 8px; font-weight: 900; }
-        .redBtn { background: #d71920; color: #fff; box-shadow: 0 12px 30px rgba(215,25,32,.22); }
-        .outlineBtn { border: 1px solid #1b1b1b; color: #151515; background: #fff; }
-        .carVisual { min-height: 300px; position: relative; }
-        .carShape { position: absolute; inset: 30px 0 0 0; border-radius: 55% 20% 18% 40%; background: linear-gradient(135deg,#111,#3b424a 58%,#0c0c0c); box-shadow: -30px 40px 80px rgba(0,0,0,.18); transform: skewX(-10deg); opacity: .95; }
-        .carShape::before { content: ''; position: absolute; left: 16%; top: -28px; width: 56%; height: 100px; border: 18px solid #222; border-bottom: 0; border-radius: 100% 100% 0 0; transform: skewX(12deg); background: rgba(255,255,255,.22); }
-        .serviceStrip { background: #fff; border-bottom: 1px solid #e6e6e6; display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; padding: 22px 46px; }
-        .serviceStrip div { border-right: 1px solid #eee; padding-right: 18px; display: flex; flex-direction: column; gap: 4px; }
-        .serviceStrip span { color: #666; font-size: 14px; }
-        .section { padding: 34px 46px; max-width: 1240px; margin: 0 auto; }
-        .titleBlock { text-align: center; margin-bottom: 26px; }
-        .titleBlock h2 { margin: 0; font-size: 30px; }
-        .titleBlock span { display: block; width: 46px; height: 3px; background: #d71920; margin: 12px auto 0; }
+        .header { position: sticky; top: 0; z-index: 40; display: grid; grid-template-columns: 180px 1fr auto; align-items: center; gap: 28px; padding: 18px 54px; background: rgba(250,249,246,.88); border-bottom: 1px solid rgba(0,0,0,.08); backdrop-filter: blur(20px); }
+        .logo img { width: 150px; height: 70px; object-fit: contain; display: block; }
+        nav { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+        nav a { padding: 10px 14px; border-radius: 999px; font-size: 14px; font-weight: 700; color: #333; }
+        nav a:hover { background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,.06); }
+        .headerCta { background: #111; color: #fff; border-radius: 999px; padding: 13px 18px; font-weight: 800; white-space: nowrap; }
+        .hero { min-height: 680px; display: grid; grid-template-columns: minmax(0, .95fr) minmax(420px, 1.05fr); align-items: center; gap: 54px; padding: 72px 54px 64px; max-width: 1440px; margin: 0 auto; }
+        .heroCopy { max-width: 650px; }
+        .eyebrow, .sectionHead span, .bottomCta span { display: inline-block; color: #b3141b; font-size: 12px; font-weight: 900; letter-spacing: 1.6px; margin-bottom: 16px; }
+        h1 { margin: 0; font-size: clamp(48px, 6vw, 82px); line-height: .96; letter-spacing: -4px; font-weight: 900; }
+        .heroCopy p { color: #5d5d5d; font-size: 19px; line-height: 1.75; margin: 26px 0 0; max-width: 580px; }
+        .heroActions { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 36px; }
+        .darkBtn, .lightBtn { min-height: 56px; display: inline-flex; align-items: center; justify-content: center; padding: 0 28px; border-radius: 999px; font-weight: 900; }
+        .darkBtn { background: #111; color: #fff; box-shadow: 0 22px 50px rgba(0,0,0,.18); }
+        .lightBtn { background: #fff; border: 1px solid rgba(0,0,0,.1); }
+        .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-top: 44px; max-width: 520px; }
+        .stats div { background: rgba(255,255,255,.72); border: 1px solid rgba(0,0,0,.08); border-radius: 22px; padding: 18px; box-shadow: 0 22px 54px rgba(0,0,0,.05); }
+        .stats strong { display: block; font-size: 28px; }
+        .stats span { color: #6b6b6b; font-size: 13px; }
+        .heroVisual { position: relative; min-height: 520px; border-radius: 44px; background: linear-gradient(135deg,#fff,#e8e8e8); box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 42px 90px rgba(0,0,0,.13); overflow: hidden; }
+        .carLine { position: absolute; left: 9%; right: 7%; top: 22%; height: 270px; border-radius: 58% 40% 30% 48%; background: linear-gradient(135deg,#111,#3b3d40 58%,#0b0b0b); transform: skewX(-10deg); box-shadow: 0 30px 70px rgba(0,0,0,.24); }
+        .carLine::before { content: ''; position: absolute; left: 15%; top: -56px; width: 58%; height: 132px; border: 18px solid #151515; border-bottom: 0; border-radius: 100% 100% 0 0; transform: skewX(10deg); background: rgba(255,255,255,.17); }
+        .heroLogo { position: absolute; left: 50%; bottom: 32px; transform: translateX(-50%); width: 72%; background: #fff; border-radius: 30px; padding: 22px; box-shadow: 0 26px 60px rgba(0,0,0,.10); }
+        .heroLogo img { width: 100%; max-height: 170px; object-fit: contain; display: block; }
+        .services { max-width: 1330px; margin: -22px auto 0; position: relative; z-index: 2; display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; padding: 0 54px; }
+        .services div { background: rgba(255,255,255,.84); border: 1px solid rgba(0,0,0,.07); border-radius: 26px; padding: 24px; box-shadow: 0 28px 70px rgba(0,0,0,.07); backdrop-filter: blur(18px); }
+        .services strong { display: block; font-size: 18px; margin-bottom: 8px; }
+        .services span { color: #666; line-height: 1.55; }
+        .section { max-width: 1330px; margin: 0 auto; padding: 76px 54px 0; }
+        .sectionHead { margin-bottom: 28px; }
+        .sectionHead.center { text-align: center; }
+        .sectionHead h2 { margin: 0; font-size: clamp(34px, 4vw, 52px); line-height: 1; letter-spacing: -1.8px; }
         .brandGrid { display: grid; grid-template-columns: repeat(6,1fr); gap: 16px; }
-        .brandCard { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 26px 14px; text-align: center; box-shadow: 0 16px 36px rgba(0,0,0,.04); }
-        .brandIcon { width: 74px; height: 74px; border-radius: 18px; background: #f1f2f4; color: #d71920; display: grid; place-items: center; margin: 0 auto 14px; font-size: 34px; font-weight: 900; }
-        .centerBtn { display: table; margin: 20px auto 0; border: 1px solid #d6d6d6; border-radius: 8px; padding: 14px 26px; font-weight: 900; background: #fff; }
-        .productGrid { display: grid; grid-template-columns: repeat(6,1fr); gap: 14px; }
-        .productCard { background: #fff; border: 1px solid #dedede; border-radius: 12px; overflow: hidden; box-shadow: 0 18px 42px rgba(0,0,0,.05); }
-        .productImg { height: 160px; display: flex; align-items: center; justify-content: center; padding: 14px; background: #f8f8f8; }
-        .productImg img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .productInfo { padding: 14px; }
-        .productInfo h3 { min-height: 48px; font-size: 14px; line-height: 1.35; margin: 0 0 8px; }
-        .productInfo p { color: #777; font-size: 12px; margin: 0 0 12px; }
-        .productInfo strong { color: #d71920; display: block; margin-bottom: 12px; }
-        .productInfo a { display: flex; justify-content: space-between; border: 1px solid #d6d6d6; border-radius: 6px; padding: 10px 12px; font-size: 12px; font-weight: 900; }
-        .quickCards { max-width: 1240px; margin: 0 auto; padding: 22px 46px 70px; display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
-        .quickCards div { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 22px; display: flex; flex-direction: column; gap: 8px; }
-        .quickCards strong { font-size: 18px; }
-        .quickCards span { color: #666; line-height: 1.5; }
-        .floatingWp { position: fixed; right: 28px; bottom: 24px; z-index: 30; background: #25D366; color: #fff; padding: 16px 24px; border-radius: 999px; font-weight: 900; box-shadow: 0 14px 34px rgba(37,211,102,.32); }
+        .brandCard { background: #fff; border-radius: 28px; padding: 28px 18px; text-align: center; border: 1px solid rgba(0,0,0,.07); box-shadow: 0 24px 70px rgba(0,0,0,.055); transition: transform .2s ease, box-shadow .2s ease; }
+        .brandCard:hover { transform: translateY(-4px); box-shadow: 0 32px 80px rgba(0,0,0,.09); }
+        .brandCard span { width: 78px; height: 78px; border-radius: 24px; display: grid; place-items: center; margin: 0 auto 16px; color: #fff; background: linear-gradient(135deg,#111,#444); font-size: 38px; font-weight: 900; }
+        .brandCard strong { display: block; font-size: 18px; }
+        .brandCard small { color: #777; display: block; margin-top: 6px; }
+        .productGrid { display: grid; grid-template-columns: repeat(3,1fr); gap: 22px; }
+        .productCard { display: grid; grid-template-columns: 190px 1fr; gap: 20px; align-items: center; background: #fff; border-radius: 30px; border: 1px solid rgba(0,0,0,.07); padding: 18px; box-shadow: 0 26px 78px rgba(0,0,0,.065); }
+        .productImage { height: 170px; display: grid; place-items: center; background: #f5f5f5; border-radius: 24px; padding: 16px; }
+        .productImage img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .productCard h3 { font-size: 17px; line-height: 1.35; margin: 0 0 10px; }
+        .productCard p { color: #777; font-size: 13px; margin: 0 0 12px; }
+        .productCard strong { color: #b3141b; display: block; font-size: 20px; margin-bottom: 14px; }
+        .productCard div a { display: inline-flex; border-radius: 999px; background: #111; color: #fff; padding: 11px 16px; font-weight: 800; font-size: 13px; }
+        .allProducts { display: table; margin: 28px auto 0; background: #fff; border: 1px solid rgba(0,0,0,.1); padding: 15px 26px; border-radius: 999px; font-weight: 900; }
+        .bottomCta { max-width: 1220px; margin: 80px auto 90px; padding: 42px; border-radius: 34px; background: #111; color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 24px; box-shadow: 0 40px 90px rgba(0,0,0,.18); }
+        .bottomCta h2 { margin: 0; font-size: clamp(30px, 4vw, 48px); letter-spacing: -1.5px; }
+        .bottomCta a { background: #25D366; color: #071b0d; border-radius: 999px; padding: 16px 24px; font-weight: 900; white-space: nowrap; }
+        .floatWp { position: fixed; right: 26px; bottom: 22px; z-index: 60; background: #25D366; color: #fff; border-radius: 999px; padding: 15px 22px; font-weight: 900; box-shadow: 0 18px 40px rgba(37,211,102,.35); }
         @media (max-width: 980px) {
-          .topBar { display: none; }
-          .header { grid-template-columns: 1fr; padding: 16px; gap: 14px; }
-          .logoArea img { width: 140px; margin: 0 auto; }
-          .searchBox { height: 48px; }
-          .accountArea { justify-content: center; }
-          .mainNav { padding: 0 16px; gap: 14px; }
-          .hero { grid-template-columns: 1fr; min-height: auto; padding: 42px 16px; }
-          .heroText h1 { font-size: 38px; }
-          .heroText p { font-size: 16px; }
-          .heroActions a { width: 100%; }
-          .carVisual { min-height: 160px; }
-          .carShape { inset: 20px 0 0 0; opacity: .18; }
-          .serviceStrip { grid-template-columns: 1fr 1fr; padding: 18px 16px; }
-          .section { padding: 28px 16px; }
-          .brandGrid { grid-template-columns: repeat(2,1fr); }
-          .productGrid { grid-template-columns: repeat(2,1fr); }
-          .quickCards { grid-template-columns: 1fr; padding: 18px 16px 80px; }
-          .floatingWp { left: 16px; right: 16px; text-align: center; bottom: 16px; }
+          .header { grid-template-columns: 1fr; padding: 14px 16px; gap: 12px; }
+          .logo img { width: 128px; height: 60px; margin: 0 auto; }
+          nav { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 4px; scrollbar-width: none; }
+          nav::-webkit-scrollbar { display: none; }
+          nav a { background: #fff; white-space: nowrap; box-shadow: 0 10px 26px rgba(0,0,0,.05); }
+          .headerCta { text-align: center; }
+          .hero { grid-template-columns: 1fr; min-height: auto; padding: 42px 16px 38px; gap: 26px; }
+          h1 { font-size: 42px; letter-spacing: -2px; }
+          .heroCopy p { font-size: 16px; line-height: 1.65; }
+          .darkBtn, .lightBtn { width: 100%; }
+          .stats { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+          .stats div { padding: 14px 10px; border-radius: 18px; }
+          .stats strong { font-size: 22px; }
+          .heroVisual { min-height: 340px; border-radius: 30px; }
+          .carLine { top: 18%; height: 190px; opacity: .95; }
+          .heroLogo { width: 84%; bottom: 20px; border-radius: 22px; padding: 14px; }
+          .heroLogo img { max-height: 115px; }
+          .services { grid-template-columns: 1fr; padding: 0 16px; margin-top: 16px; }
+          .section { padding: 52px 16px 0; }
+          .brandGrid { grid-template-columns: repeat(2,1fr); gap: 12px; }
+          .brandCard { border-radius: 22px; padding: 20px 12px; }
+          .brandCard span { width: 58px; height: 58px; border-radius: 18px; font-size: 28px; }
+          .productGrid { grid-template-columns: 1fr; gap: 14px; }
+          .productCard { grid-template-columns: 120px 1fr; border-radius: 24px; padding: 12px; gap: 14px; }
+          .productImage { height: 130px; border-radius: 18px; }
+          .productCard h3 { font-size: 15px; }
+          .bottomCta { margin: 52px 16px 90px; padding: 28px; border-radius: 28px; flex-direction: column; align-items: flex-start; }
+          .bottomCta a { width: 100%; text-align: center; }
+          .floatWp { left: 16px; right: 16px; text-align: center; bottom: 16px; }
         }
       `}</style>
     </main>
