@@ -25,6 +25,27 @@ function normalizeText(text) {
     .trim()
 }
 
+function slugify(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function productCode(product) {
+  return product.sku || product.refNo || product.internalCode || `urun-${product.id || product.no}`
+}
+
+function productSlug(product) {
+  return `${slugify(productCode(product))}-${product.id || product.no || slugify(product.title)}`
+}
+
 function cleanImagePath(image) {
   if (!image) return '/logo.svg'
 
@@ -49,6 +70,7 @@ function formatPrice(value) {
 function calculateSalePrice(product) {
   const cost = parsePrice(product.price3 || product.price2 || product.price1)
   if (!cost) return ''
+  if (product.price) return `${Number(product.price).toLocaleString('tr-TR')} ₺`
   if (cost <= 1000) return formatPrice(cost * 2)
   if (cost <= 10000) return formatPrice(cost * 1.5)
   return formatPrice(cost * 1.25)
@@ -63,7 +85,7 @@ function productMatchesBrand(product, brandSlug) {
 function productMatchesModel(product, modelSlug) {
   if (!modelSlug) return true
   const wanted = normalizeText(modelSlug).replace(/-/g, ' ')
-  const productText = normalizeText(`${product.title || ''} ${product.rawText || ''}`)
+  const productText = normalizeText(`${product.title || ''} ${product.rawText || ''} ${product.model || ''}`)
 
   if (wanted === 'model 3') {
     return productText.includes('model 3') || productText.includes('model 3 y') || productText.includes('model 3 y') || productText.includes('model 3y')
@@ -116,11 +138,13 @@ export default function ProductsPage() {
         ) : visibleProducts.map(product => {
           const image = cleanImagePath(product.image)
           const salePrice = calculateSalePrice(product)
+          const slug = productSlug(product)
+          const detailUrl = `/product/${slug}`
           const message = encodeURIComponent(`Merhaba, bu ürünü sipariş vermek istiyorum:\n\nÜrün: ${product.title}\nKod: ${product.refNo || product.internalCode || product.sku}\nFiyat: ${salePrice || product.price || 'Fiyat sorunuz'}\nKategori: ${product.category}`)
           const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`
 
           return (
-            <article key={`${product.no || product.id}-${product.refNo || product.sku}`} style={{ background: '#151515', border: '1px solid #242424', borderRadius: '18px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <a key={`${product.no || product.id}-${product.refNo || product.sku}`} href={detailUrl} style={{ background: '#151515', border: '1px solid #242424', borderRadius: '18px', overflow: 'hidden', display: 'flex', flexDirection: 'column', textDecoration: 'none', color: '#fff' }}>
               <div style={{ height: '210px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px' }}>
                 <img loading="lazy" src={image} alt={product.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               </div>
@@ -129,9 +153,11 @@ export default function ProductsPage() {
                 <h2 style={{ fontSize: '18px', margin: 0, lineHeight: 1.35 }}>{product.title}</h2>
                 <p style={{ color: '#aaa', margin: 0, fontSize: '14px' }}>Ref: {product.refNo || product.internalCode || product.sku}</p>
                 <strong style={{ fontSize: '20px', marginTop: 'auto' }}>{salePrice || (product.price ? `${product.price.toLocaleString('tr-TR')} ₺` : 'Fiyat sorunuz')}</strong>
-                <a href={whatsappUrl} target="_blank" rel="noreferrer" style={{ textAlign: 'center', background: '#25D366', color: '#071b0d', textDecoration: 'none', fontWeight: 'bold', padding: '12px', borderRadius: '12px', marginTop: '8px' }}>WhatsApp ile Sipariş Ver</a>
+                <span onClick={(e) => e.stopPropagation()}>
+                  <a href={whatsappUrl} target="_blank" rel="noreferrer" style={{ display: 'block', textAlign: 'center', background: '#25D366', color: '#071b0d', textDecoration: 'none', fontWeight: 'bold', padding: '12px', borderRadius: '12px', marginTop: '8px' }}>WhatsApp ile Sipariş Ver</a>
+                </span>
               </div>
-            </article>
+            </a>
           )
         })}
       </section>
