@@ -1,23 +1,16 @@
-const { createServer } = require('http')
-const next = require('next')
+const http = require('http')
+const handler = require('serve-handler')
 
-const dev = process.env.NODE_ENV !== 'production'
-const hostname = '0.0.0.0'
-const port = Number(process.env.PORT) || 3000
+const port = process.env.PORT || 3000
 
-const app = next({ dev, hostname, port })
-const handle = app.getRequestHandler()
-
-app.prepare().then(() => {
-  createServer(async (req, res) => {
-    try {
-      await handle(req, res)
-    } catch (err) {
-      console.error('Request error:', err)
-      res.statusCode = 500
-      res.end('Internal Server Error')
-    }
-  }).listen(port, hostname, () => {
-    console.log(`Paşa Oto Parça running on http://${hostname}:${port}`)
+const server = http.createServer((request, response) => {
+  return handler(request, response, {
+    public: 'out',
+    cleanUrls: true,
+    trailingSlash: true
   })
+})
+
+server.listen(port, '0.0.0.0', () => {
+  console.log(`Paşa Oto Parça running on port ${port}`)
 })
