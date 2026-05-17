@@ -5,6 +5,43 @@ function cleanImagePath(image) {
   return '/' + image.replace(/\\/g, '/').replace(/^images\//, 'images/')
 }
 
+function parsePrice(priceText) {
+  if (!priceText) return 0
+  return Number(
+    String(priceText)
+      .replace(/₺/g, '')
+      .replace(/\s/g, '')
+      .replace(/\./g, '')
+      .replace(',', '.')
+  ) || 0
+}
+
+function formatPrice(value) {
+  return new Intl.NumberFormat('tr-TR', {
+    style: 'currency',
+    currency: 'TRY',
+    maximumFractionDigits: 2
+  }).format(value)
+}
+
+function calculateSalePrice(product) {
+  const cost = parsePrice(product.price3 || product.price2 || product.price1)
+
+  if (!cost) return ''
+
+  let salePrice = cost
+
+  if (cost <= 1000) {
+    salePrice = cost * 2
+  } else if (cost <= 10000) {
+    salePrice = cost * 1.5
+  } else {
+    salePrice = cost * 1.25
+  }
+
+  return formatPrice(salePrice)
+}
+
 export default function ProductsPage() {
   const categories = ['Tümü', ...Array.from(new Set(products.map(p => p.category || 'Diğer')))]
 
@@ -31,7 +68,9 @@ export default function ProductsPage() {
       <section style={{ padding: '30px 40px 80px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: '22px' }}>
         {products.map(product => {
           const image = cleanImagePath(product.image)
-          const message = encodeURIComponent(`Merhaba, bu ürünü sipariş vermek istiyorum:%0A%0AÜrün: ${product.title}%0AKod: ${product.refNo || product.internalCode}%0AFiyat: ${product.price3 || product.price1}%0AKategori: ${product.category}`)
+          const salePrice = calculateSalePrice(product)
+          const costPrice = product.price3 || product.price2 || product.price1 || ''
+          const message = encodeURIComponent(`Merhaba, bu ürünü sipariş vermek istiyorum:%0A%0AÜrün: ${product.title}%0AKod: ${product.refNo || product.internalCode}%0AFiyat: ${salePrice || 'Fiyat sorunuz'}%0AKategori: ${product.category}`)
           const whatsappUrl = `https://wa.me/?text=${message}`
 
           return (
@@ -48,7 +87,10 @@ export default function ProductsPage() {
                 <span style={{ color: '#999', fontSize: '13px' }}>{product.category || 'Diğer'} • Tesla</span>
                 <h2 style={{ fontSize: '18px', margin: 0, lineHeight: 1.35 }}>{product.title}</h2>
                 <p style={{ color: '#aaa', margin: 0, fontSize: '14px' }}>Ref: {product.refNo || product.internalCode}</p>
-                <strong style={{ fontSize: '20px', marginTop: 'auto' }}>{product.price3 || product.price1 || 'Fiyat sorunuz'}</strong>
+                <strong style={{ fontSize: '20px', marginTop: 'auto' }}>{salePrice || 'Fiyat sorunuz'}</strong>
+                {costPrice && (
+                  <span style={{ color: '#666', fontSize: '12px' }}>Maliyet baz: {costPrice}</span>
+                )}
 
                 <a href={whatsappUrl} target="_blank" rel="noreferrer" style={{ textAlign: 'center', background: '#25D366', color: '#071b0d', textDecoration: 'none', fontWeight: 'bold', padding: '12px', borderRadius: '12px', marginTop: '8px' }}>
                   WhatsApp ile Sipariş Ver
