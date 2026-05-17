@@ -1,16 +1,4 @@
-const http = require('http')
-const handler = require('serve-handler')
-
-const port = process.env.PORT || 3000
-
-const server = http.createServer((request, response) => {
-  return handler(request, response, {
-    public: 'out',
-    cleanUrls: true,
-    trailingSlash: true
-  })
-})
-
-server.listen(port, '0.0.0.0', () => {
-  console.log(`Paşa Oto Parça running on port ${port}`)
-})
+// This project is deployed as a static Next.js export on Hostinger.
+// Hostinger should serve the generated static output folder after `npm run build`.
+// This file is intentionally inactive to avoid Node.js runtime detection issues.
+console.log('Static deploy only. Run npm run build and serve the generated static output.')
