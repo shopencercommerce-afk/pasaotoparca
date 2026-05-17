@@ -1,16 +1,15 @@
 const http = require('http')
-const handler = require('serve-handler')
+const next = require('next')
 
-const port = process.env.PORT || 3000
+const port = Number(process.env.PORT || 3000)
+const dev = process.env.NODE_ENV !== 'production'
+const app = next({ dev, hostname: '0.0.0.0', port })
+const handle = app.getRequestHandler()
 
-const server = http.createServer((request, response) => {
-  return handler(request, response, {
-    public: 'out',
-    cleanUrls: true,
-    trailingSlash: true
+app.prepare().then(() => {
+  const server = http.createServer((req, res) => handle(req, res))
+
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`Paşa Oto Parça running on http://0.0.0.0:${port}`)
   })
-})
-
-server.listen(port, '0.0.0.0', () => {
-  console.log(`Paşa Oto Parça running on port ${port}`)
 })
