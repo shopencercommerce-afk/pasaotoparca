@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" role="img" aria-label="Paşa Oto Parça Logo">
+  <rect width="900" height="520" fill="#ffffff"/>
+  <g fill="none" stroke="#20262b" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M170 235 C245 130 425 122 560 135"/>
+    <path d="M560 135 C610 142 668 182 705 225"/>
+    <path d="M154 253 C250 276 406 268 530 246"/>
+    <path d="M536 244 C565 180 581 153 623 154"/>
+    <path d="M623 154 C674 159 720 200 745 234"/>
+    <path d="M205 248 C222 230 244 220 278 218"/>
+    <path d="M472 240 C505 226 528 221 548 219"/>
+    <path d="M285 320 C285 270 320 264 334 320"/>
+    <path d="M700 320 C700 270 735 264 749 320"/>
+  </g>
+  <g fill="#20262b" font-family="Arial, Helvetica, sans-serif" text-anchor="middle">
+    <text x="450" y="405" font-size="92" font-weight="800" letter-spacing="42">PAŞA</text>
+    <text x="450" y="472" font-size="34" letter-spacing="34">OTO PARÇA</text>
+  </g>
+  <line x1="155" y1="455" x2="245" y2="455" stroke="#b40000" stroke-width="4"/>
+  <line x1="655" y1="455" x2="745" y2="455" stroke="#b40000" stroke-width="4"/>
+</svg>
