@@ -27,7 +27,14 @@ function normalizeText(text) {
 
 function cleanImagePath(image) {
   if (!image) return '/logo.svg'
-  return '/' + image.replace(/\\/g, '/').replace(/^images\//, 'images/')
+
+  const normalized = image.replace(/\\/g, '/')
+
+  if (normalized.startsWith('/')) {
+    return normalized
+  }
+
+  return '/' + normalized.replace(/^images\//, 'images/')
 }
 
 function parsePrice(priceText) {
@@ -109,19 +116,19 @@ export default function ProductsPage() {
         ) : visibleProducts.map(product => {
           const image = cleanImagePath(product.image)
           const salePrice = calculateSalePrice(product)
-          const message = encodeURIComponent(`Merhaba, bu ürünü sipariş vermek istiyorum:\n\nÜrün: ${product.title}\nKod: ${product.refNo || product.internalCode}\nFiyat: ${salePrice || 'Fiyat sorunuz'}\nKategori: ${product.category}`)
+          const message = encodeURIComponent(`Merhaba, bu ürünü sipariş vermek istiyorum:\n\nÜrün: ${product.title}\nKod: ${product.refNo || product.internalCode || product.sku}\nFiyat: ${salePrice || product.price || 'Fiyat sorunuz'}\nKategori: ${product.category}`)
           const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`
 
           return (
-            <article key={`${product.no}-${product.refNo}`} style={{ background: '#151515', border: '1px solid #242424', borderRadius: '18px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <article key={`${product.no || product.id}-${product.refNo || product.sku}`} style={{ background: '#151515', border: '1px solid #242424', borderRadius: '18px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               <div style={{ height: '210px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px' }}>
                 <img loading="lazy" src={image} alt={product.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               </div>
               <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
                 <span style={{ color: '#999', fontSize: '13px' }}>{product.category || 'Diğer'} • {brandName}</span>
                 <h2 style={{ fontSize: '18px', margin: 0, lineHeight: 1.35 }}>{product.title}</h2>
-                <p style={{ color: '#aaa', margin: 0, fontSize: '14px' }}>Ref: {product.refNo || product.internalCode}</p>
-                <strong style={{ fontSize: '20px', marginTop: 'auto' }}>{salePrice || 'Fiyat sorunuz'}</strong>
+                <p style={{ color: '#aaa', margin: 0, fontSize: '14px' }}>Ref: {product.refNo || product.internalCode || product.sku}</p>
+                <strong style={{ fontSize: '20px', marginTop: 'auto' }}>{salePrice || (product.price ? `${product.price.toLocaleString('tr-TR')} ₺` : 'Fiyat sorunuz')}</strong>
                 <a href={whatsappUrl} target="_blank" rel="noreferrer" style={{ textAlign: 'center', background: '#25D366', color: '#071b0d', textDecoration: 'none', fontWeight: 'bold', padding: '12px', borderRadius: '12px', marginTop: '8px' }}>WhatsApp ile Sipariş Ver</a>
               </div>
             </article>
