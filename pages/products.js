@@ -93,8 +93,19 @@ function productMatchesModel(product, modelSlug) {
 function productMatchesSearch(product, query) {
   if (!query) return true
   const words = normalizeText(query).split(' ').filter(Boolean)
+  if (words.length === 0) return true
   const text = normalizeText(`${product.title || ''} ${productCode(product)} ${product.category || ''} ${product.brand || ''} ${product.model || ''} ${product.rawText || ''}`)
   return words.every(word => text.includes(word))
+}
+
+function readFiltersFromUrl() {
+  if (typeof window === 'undefined') return { brand: '', model: '', q: '' }
+  const params = new URLSearchParams(window.location.search)
+  return {
+    brand: params.get('brand') || '',
+    model: params.get('model') || '',
+    q: params.get('q') || ''
+  }
 }
 
 function addToCart(product) {
@@ -120,10 +131,19 @@ function addToCart(product) {
 
 export default function ProductsPage() {
   const router = useRouter()
-  const brandSlug = typeof router.query.brand === 'string' ? router.query.brand : ''
-  const modelSlug = typeof router.query.model === 'string' ? router.query.model : ''
-  const searchQuery = typeof router.query.q === 'string' ? router.query.q : ''
+  const [filters, setFilters] = useState({ brand: '', model: '', q: '' })
   const [visibleCount, setVisibleCount] = useState(pageSize)
+
+  useEffect(() => {
+    const updateFilters = () => setFilters(readFiltersFromUrl())
+    updateFilters()
+    window.addEventListener('popstate', updateFilters)
+    return () => window.removeEventListener('popstate', updateFilters)
+  }, [router.asPath])
+
+  const brandSlug = filters.brand
+  const modelSlug = filters.model
+  const searchQuery = filters.q
 
   const filteredProducts = useMemo(() => products.filter(product => (
     productMatchesBrand(product, brandSlug) &&
