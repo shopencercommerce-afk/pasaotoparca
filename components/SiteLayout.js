@@ -60,6 +60,11 @@ export function whatsappUrl(text) {
   return `${wpBaseUrl}?text=${encodeURIComponent(text)}`
 }
 
+export function brandLogoText(name) {
+  const map = { Tesla: 'TESLA', BYD: 'BYD', Togg: 'TOGG', Chery: 'CHERY', MG: 'MG', Skywell: 'SKYWELL' }
+  return map[name] || String(name || '').toUpperCase()
+}
+
 function HeaderSearch() {
   function handleSubmit(e) {
     e.preventDefault()
@@ -70,7 +75,7 @@ function HeaderSearch() {
   return (
     <form className="siteSearch" onSubmit={handleSubmit}>
       <span>⌕</span>
-      <input name="q" placeholder="Ürün, parça kodu, marka veya model ara" autoComplete="off" />
+      <input name="q" placeholder="Parça kodu, ürün, marka veya model ara" autoComplete="off" />
       <button type="submit">Ara</button>
     </form>
   )
@@ -80,14 +85,14 @@ export function SiteHeader() {
   return (
     <>
       <div className="noticeBar">
-        <span>Elektrikli ve yeni nesil araç yedek parçalarında hızlı teklif</span>
+        <span>Parça kodu, stok ve araç uyumluluğu sipariş öncesi WhatsApp üzerinden teyit edilir.</span>
         <a href={whatsappUrl('Merhaba, ürün uyumluluğu ve stok hakkında bilgi almak istiyorum.')}>WhatsApp destek: 0507 730 27 03</a>
       </div>
       <header className="siteHeader">
         <a href="/" className="siteLogo"><img src="/logo-new.svg" alt="Paşa Oto Parça" /></a>
         <HeaderSearch />
         <div className="headerActions">
-          <a href="/account">Hesabım</a>
+          <a href="/orders">Sipariş Takip</a>
           <a href="/cart/">Sepetim</a>
         </div>
       </header>
@@ -99,7 +104,7 @@ export function SiteHeader() {
             <div className="megaGrid">
               {brands.map(brand => (
                 <div key={brand.slug}>
-                  <a className="megaBrand" href={productsUrl(brand.slug)}>{brand.name}</a>
+                  <a className="megaBrand" href={productsUrl(brand.slug)}>{brandLogoText(brand.name)}</a>
                   {brand.models.map(model => <a key={model} href={productsUrl(brand.slug, model)}>{model}</a>)}
                 </div>
               ))}
@@ -107,7 +112,8 @@ export function SiteHeader() {
           </div>
         </div>
         <a href="/products/">Katalog</a>
-        {brands.slice(0, 6).map(brand => <a key={brand.slug} href={productsUrl(brand.slug)}>{brand.name}</a>)}
+        <a href={whatsappUrl('Merhaba, parça kodu ile ürün teyidi almak istiyorum.')}>Parça Kodu Teyidi</a>
+        {brands.slice(0, 5).map(brand => <a key={brand.slug} href={productsUrl(brand.slug)}>{brand.name}</a>)}
         <a href={whatsappUrl('Merhaba, ürün siparişi vermek istiyorum.')}>İletişim</a>
       </nav>
     </>
@@ -129,14 +135,16 @@ export function SiteFooter() {
       <div>
         <h3>Destek</h3>
         <a href={whatsappUrl('Merhaba, ürün uyumluluğu hakkında bilgi almak istiyorum.')}>WhatsApp Destek</a>
+        <a href={whatsappUrl('Merhaba, parça kodu ile ürün teyidi almak istiyorum.')}>Parça Kodu Teyidi</a>
+        <a href="/orders">Sipariş Takip</a>
         <a href="/cart/">Sepetim</a>
-        <a href="/account">Hesabım</a>
       </div>
       <div>
         <h3>Güven</h3>
-        <span>Parça kodu kontrolü</span>
         <span>Stok teyidi</span>
+        <span>Parça kodu kontrolü</span>
         <span>Kargo bilgilendirme</span>
+        <span>WhatsApp üzerinden net teklif</span>
       </div>
     </footer>
   )
@@ -147,10 +155,10 @@ export function BottomNav() {
   const active = path => router.pathname === path || (path === '/products/' && router.pathname.startsWith('/product'))
   return (
     <nav className="bottomNav">
-      <a className={active('/') ? 'active' : ''} href="/"><b>⌂</b><span>Home</span></a>
+      <a className={active('/') ? 'active' : ''} href="/"><b>⌂</b><span>Ana Sayfa</span></a>
       <a className={active('/products/') ? 'active' : ''} href="/products/"><b>▦</b><span>Katalog</span></a>
+      <a href={whatsappUrl('Merhaba, parça kodu ile ürün teyidi almak istiyorum.')}><b>✓</b><span>Teyit</span></a>
       <a className={active('/cart/') ? 'active' : ''} href="/cart/"><b>●</b><span>Sepet</span></a>
-      <a className={active('/account') ? 'active' : ''} href="/account"><b>◔</b><span>Profil</span></a>
     </nav>
   )
 }
