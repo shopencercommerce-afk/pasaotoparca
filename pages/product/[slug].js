@@ -1,52 +1,5 @@
 import products from '../../data/products.json'
-
-const whatsappNumber = '905077302703'
-
-function slugify(text) {
-  return String(text || '')
-    .toLowerCase()
-    .replace(/ğ/g, 'g')
-    .replace(/ü/g, 'u')
-    .replace(/ş/g, 's')
-    .replace(/ı/g, 'i')
-    .replace(/ö/g, 'o')
-    .replace(/ç/g, 'c')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
-
-function productCode(product) {
-  return product.sku || product.refNo || product.internalCode || `urun-${product.id || product.no}`
-}
-
-function productSlug(product) {
-  return `${slugify(productCode(product))}-${product.id || product.no || slugify(product.title)}`
-}
-
-function cleanImagePath(image) {
-  if (!image) return '/logo.svg'
-  const normalized = image.replace(/\\/g, '/')
-  if (normalized.startsWith('/')) return normalized
-  return '/' + normalized.replace(/^images\//, 'images/')
-}
-
-function parsePrice(priceText) {
-  if (!priceText) return 0
-  return Number(String(priceText).replace(/₺/g, '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.')) || 0
-}
-
-function formatPrice(value) {
-  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 2 }).format(value)
-}
-
-function calculateSalePrice(product) {
-  if (product.price) return `${Number(product.price).toLocaleString('tr-TR')} ₺`
-  const cost = parsePrice(product.price3 || product.price2 || product.price1)
-  if (!cost) return 'Fiyat sorunuz'
-  if (cost <= 1000) return formatPrice(cost * 2)
-  if (cost <= 10000) return formatPrice(cost * 1.5)
-  return formatPrice(cost * 1.25)
-}
+import SiteLayout, { cleanImagePath, productCode, productSlug, salePrice, whatsappUrl } from '../../components/SiteLayout'
 
 export async function getStaticPaths() {
   return {
@@ -57,65 +10,73 @@ export async function getStaticPaths() {
 
 export async function getStaticProps({ params }) {
   const product = products.find(item => productSlug(item) === params.slug) || null
+  const relatedProducts = product
+    ? products
+        .filter(item => item !== product && (item.category === product.category || item.brand === product.brand))
+        .filter(item => item.image && item.title)
+        .slice(0, 4)
+    : []
 
-  return {
-    props: {
-      product
-    }
-  }
+  return { props: { product, relatedProducts } }
 }
 
-export default function ProductDetailPage({ product }) {
+export default function ProductDetailPage({ product, relatedProducts }) {
   if (!product) return null
 
   const image = cleanImagePath(product.image)
   const code = productCode(product)
-  const price = calculateSalePrice(product)
+  const price = salePrice(product, 2)
   const brand = product.brand || 'Paşa Oto Parça'
   const model = product.model || ''
-  const message = encodeURIComponent(`Merhaba, bu ürün hakkında bilgi almak istiyorum:\n\nÜrün: ${product.title}\nKod: ${code}\nFiyat: ${price}\nKategori: ${product.category || 'Diğer'}`)
-  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`
+  const message = `Merhaba, bu ürün hakkında bilgi almak istiyorum:\n\nÜrün: ${product.title}\nKod: ${code}\nFiyat: ${price}\nKategori: ${product.category || 'Diğer'}`
+  const wp = whatsappUrl(message)
 
   return (
-    <main style={{ fontFamily: 'Arial, sans-serif', background: '#0b0b0b', color: '#fff', minHeight: '100vh' }}>
-      <header style={{ padding: '24px 40px', borderBottom: '1px solid #222', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
-        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#fff', textDecoration: 'none', fontSize: '24px', fontWeight: 'bold' }}>
-          <img src="/logo.svg" alt="Paşa Oto Parça" style={{ width: '56px', height: '56px', objectFit: 'contain', background: '#fff', borderRadius: '10px', padding: '4px' }} />
-          Paşa Oto Parça
-        </a>
-        <a href="/products/" style={{ color: '#ddd', textDecoration: 'none', border: '1px solid #333', padding: '12px 18px', borderRadius: '999px' }}>Ürünlere Dön</a>
-      </header>
+    <SiteLayout>
+      <section className="breadcrumb">
+        <a href="/">Ana Sayfa</a><span>/</span><a href="/products/">Katalog</a><span>/</span><b>{product.category || 'Ürün'}</b>
+      </section>
 
-      <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '50px 40px 80px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: '36px', alignItems: 'start' }}>
-        <div style={{ background: '#fff', borderRadius: '24px', padding: '28px', minHeight: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src={image} alt={product.title} style={{ maxWidth: '100%', maxHeight: '520px', objectFit: 'contain' }} />
-        </div>
-
-        <div style={{ background: '#151515', border: '1px solid #242424', borderRadius: '24px', padding: '30px' }}>
-          <div style={{ color: '#aaa', marginBottom: '12px', fontSize: '15px' }}>{brand}{model ? ` • ${model}` : ''} • {product.category || 'Diğer'}</div>
-          <h1 style={{ fontSize: '42px', lineHeight: 1.12, margin: '0 0 22px' }}>{product.title}</h1>
-          <div style={{ display: 'grid', gap: '12px', margin: '24px 0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', borderBottom: '1px solid #2a2a2a', paddingBottom: '12px' }}>
-              <span style={{ color: '#999' }}>Ürün Kodu</span>
-              <strong>{code}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', borderBottom: '1px solid #2a2a2a', paddingBottom: '12px' }}>
-              <span style={{ color: '#999' }}>Kategori</span>
-              <strong>{product.category || 'Diğer'}</strong>
-            </div>
-            {product.stock ? (
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', borderBottom: '1px solid #2a2a2a', paddingBottom: '12px' }}>
-                <span style={{ color: '#999' }}>Stok</span>
-                <strong>{product.stock}</strong>
-              </div>
-            ) : null}
+      <section className="detail">
+        <div className="imageCard"><img src={image} alt={product.title} /></div>
+        <div className="infoCard">
+          <div className="pillRow"><span>{brand}</span>{model ? <span>{model}</span> : null}<span>{product.category || 'Diğer'}</span></div>
+          <h1>{product.title}</h1>
+          <p className="desc">Sipariş öncesi ürün kodu, stok ve araç uyumluluğu WhatsApp üzerinden teyit edilir.</p>
+          <div className="price">{price}</div>
+          <div className="specs">
+            <div><span>Ürün Kodu</span><strong>{code}</strong></div>
+            <div><span>Kategori</span><strong>{product.category || 'Diğer'}</strong></div>
+            <div><span>Destek</span><strong>WhatsApp Teyit</strong></div>
+            <div><span>Kargo</span><strong>Bilgi Alın</strong></div>
           </div>
-
-          <div style={{ fontSize: '34px', fontWeight: 'bold', margin: '26px 0' }}>{price}</div>
-
-          <a href={whatsappUrl} target="_blank" rel="noreferrer" style={{ display: 'block', textAlign: 'center', background: '#25D366', color: '#071b0d', textDecoration: 'none', fontWeight: 'bold', padding: '17px 22px', borderRadius: '14px', fontSize: '18px' }}>WhatsApp ile Sipariş Ver</a>
+          <div className="actions">
+            <a href={wp} target="_blank" rel="noreferrer" className="primary">WhatsApp ile Sipariş Ver</a>
+            <a href="/products/" className="secondary">Kataloğa Dön</a>
+          </div>
         </div>
       </section>
-    </main>
+
+      {relatedProducts.length > 0 ? (
+        <section className="related">
+          <div className="sectionHead"><div><span>BENZER ÜRÜNLER</span><h2>İlgili parçalar</h2></div><a href="/products/">Tümünü Gör</a></div>
+          <div className="relatedGrid">
+            {relatedProducts.map(item => {
+              const url = `/product/${productSlug(item)}`
+              return <article key={`${item.no || item.id}-${productCode(item)}`} className="card">
+                <a href={url} className="cardImg"><img src={cleanImagePath(item.image)} alt={item.title} /></a>
+                <div><span>{item.category || 'Diğer'}</span><a href={url}><h3>{item.title}</h3></a><p>Ref: {productCode(item)}</p><strong>{salePrice(item)}</strong></div>
+              </article>
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      <div className="stickyBuy"><strong>{price}</strong><a href={wp} target="_blank" rel="noreferrer">WhatsApp Sipariş</a></div>
+
+      <style jsx>{`
+        .breadcrumb{max-width:1220px;margin:0 auto;padding:24px 56px 0;display:flex;gap:9px;align-items:center;color:#727784;font-size:14px}.breadcrumb a{font-weight:800}.breadcrumb b{color:#252733}.detail{max-width:1220px;margin:0 auto;padding:28px 56px 48px;display:grid;grid-template-columns:minmax(320px,.9fr) minmax(420px,1.1fr);gap:28px;align-items:start}.imageCard,.infoCard{background:#fff;border:1px solid #e8eaf0;border-radius:34px;box-shadow:0 28px 80px rgba(31,35,45,.07)}.imageCard{min-height:520px;padding:34px;display:grid;place-items:center}.imageCard img{max-width:100%;max-height:500px;object-fit:contain}.infoCard{padding:34px}.pillRow{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:18px}.pillRow span{background:#f1f3f6;border-radius:999px;padding:9px 13px;color:#555b67;font-size:13px;font-weight:900}.infoCard h1{font-size:clamp(32px,4.4vw,54px);line-height:1.04;letter-spacing:-2px;margin:0 0 16px;color:#252733}.desc{color:#6f7480;line-height:1.7;font-size:17px;margin:0 0 22px}.price{font-size:36px;font-weight:950;color:#f32334;margin-bottom:22px}.specs{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.specs div{background:#f7f8fa;border-radius:20px;padding:17px}.specs span{display:block;color:#858a95;font-size:12px;margin-bottom:8px}.specs strong{display:block;overflow-wrap:anywhere;color:#252733}.actions{display:grid;grid-template-columns:1.35fr .85fr;gap:12px;margin-top:24px}.primary,.secondary{min-height:56px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:950}.primary{background:#25D366;color:#071b0d}.secondary{background:#151821;color:#fff}.related{max-width:1220px;margin:0 auto;padding:10px 56px 34px}.sectionHead{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:20px}.sectionHead span{color:#f32334;font-size:12px;font-weight:950;letter-spacing:1.4px}.sectionHead h2{font-size:clamp(30px,4vw,44px);line-height:1;margin:8px 0 0;letter-spacing:-1.5px}.sectionHead>a{background:#fff;border:1px solid #e1e4ea;border-radius:999px;padding:13px 18px;font-weight:900}.relatedGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.card{background:#fff;border:1px solid #e8eaf0;border-radius:26px;overflow:hidden;box-shadow:0 22px 65px rgba(31,35,45,.05)}.cardImg{height:190px;background:#f7f8fa;display:grid;place-items:center;padding:18px}.cardImg img{max-width:100%;max-height:100%;object-fit:contain}.card>div{padding:16px}.card span{color:#f32334;font-size:12px;font-weight:900}.card h3{font-size:16px;line-height:1.35;min-height:44px;margin:8px 0}.card p{color:#777;margin:0 0 10px;font-size:13px;overflow-wrap:anywhere}.card strong{color:#f32334;font-size:18px}.stickyBuy{display:none}@media(max-width:860px){.breadcrumb{padding:18px 16px 0;overflow-x:auto;white-space:nowrap}.detail{grid-template-columns:1fr;padding:18px 16px 32px;gap:16px}.imageCard{min-height:320px;border-radius:28px;padding:24px}.imageCard img{max-height:285px}.infoCard{border-radius:28px;padding:22px}.infoCard h1{font-size:31px;letter-spacing:-1.2px}.price{font-size:30px}.specs{grid-template-columns:1fr}.actions{grid-template-columns:1fr}.related{padding:4px 16px 22px}.sectionHead{align-items:flex-start;flex-direction:column}.sectionHead>a{width:100%;text-align:center}.relatedGrid{grid-template-columns:1fr}.stickyBuy{position:fixed;left:16px;right:16px;bottom:88px;z-index:70;background:#151821;color:#fff;border-radius:22px;padding:12px;display:grid;grid-template-columns:1fr 1.1fr;gap:10px;align-items:center;box-shadow:0 18px 46px rgba(31,35,45,.2)}.stickyBuy strong{padding-left:6px;color:#fff;font-size:16px}.stickyBuy a{background:#25D366;color:#071b0d;border-radius:999px;padding:13px 10px;text-align:center;font-weight:950;font-size:13px}}
+      `}</style>
+    </SiteLayout>
   )
 }
