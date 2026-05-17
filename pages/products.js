@@ -1,7 +1,33 @@
+import { useRouter } from 'next/router'
 import products from '../data/products.json'
 
 const whatsappNumber = '905077302703'
-const visibleProducts = products.slice(0, 36)
+
+const brandLabels = {
+  tesla: 'Tesla',
+  byd: 'BYD',
+  togg: 'Togg',
+  chery: 'Chery',
+  mg: 'MG',
+  skywell: 'Skywell'
+}
+
+function normalizeText(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+function slugify(text) {
+  return normalizeText(text).replace(/\s+/g, '-')
+}
 
 function cleanImagePath(image) {
   if (!image) return ''
@@ -25,8 +51,30 @@ function calculateSalePrice(product) {
   return formatPrice(cost * 1.25)
 }
 
+function productMatchesBrand(product, brandSlug) {
+  if (!brandSlug) return true
+  const brandText = normalizeText(`${product.brand || ''} ${product.title || ''} ${product.rawText || ''}`)
+  return brandText.includes(normalizeText(brandSlug))
+}
+
+function productMatchesModel(product, modelSlug) {
+  if (!modelSlug) return true
+  const modelText = normalizeText(modelSlug).replace(/-/g, ' ')
+  const productText = normalizeText(`${product.title || ''} ${product.rawText || ''}`)
+  return productText.includes(modelText)
+}
+
 export default function ProductsPage() {
-  const categories = ['Tümü', ...Array.from(new Set(products.map(p => p.category || 'Diğer')))]
+  const router = useRouter()
+  const brandSlug = typeof router.query.brand === 'string' ? router.query.brand : ''
+  const modelSlug = typeof router.query.model === 'string' ? router.query.model : ''
+
+  const filteredProducts = products.filter(product => productMatchesBrand(product, brandSlug) && productMatchesModel(product, modelSlug))
+  const visibleProducts = filteredProducts.slice(0, 60)
+  const categories = ['Tümü', ...Array.from(new Set(filteredProducts.map(p => p.category || 'Diğer')))]
+  const brandName = brandLabels[brandSlug] || 'Tüm Markalar'
+  const modelName = modelSlug ? modelSlug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : ''
+  const pageTitle = modelName ? `${brandName} ${modelName} Ürünleri` : `${brandName} Ürünleri`
 
   return (
     <main style={{ fontFamily: 'Arial', background: '#0b0b0b', color: '#fff', minHeight: '100vh' }}>
@@ -36,8 +84,8 @@ export default function ProductsPage() {
       </header>
 
       <section style={{ padding: '50px 40px 20px' }}>
-        <h1 style={{ fontSize: '44px', margin: 0 }}>Tesla Model Y Ürünleri</h1>
-        <p style={{ color: '#aaa', fontSize: '18px' }}>Toplam {products.length} ürün var. Performans için şu an ilk {visibleProducts.length} ürün gösteriliyor.</p>
+        <h1 style={{ fontSize: '44px', margin: 0 }}>{pageTitle}</h1>
+        <p style={{ color: '#aaa', fontSize: '18px' }}>Bu filtrede {filteredProducts.length} ürün var. Performans için şu an ilk {visibleProducts.length} ürün gösteriliyor.</p>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '24px' }}>
           {categories.map(category => (
             <span key={category} style={{ background: '#171717', border: '1px solid #2a2a2a', padding: '10px 14px', borderRadius: '999px', color: '#ddd' }}>{category}</span>
@@ -46,7 +94,11 @@ export default function ProductsPage() {
       </section>
 
       <section style={{ padding: '30px 40px 80px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: '22px' }}>
-        {visibleProducts.map(product => {
+        {visibleProducts.length === 0 ? (
+          <div style={{ gridColumn: '1 / -1', background: '#151515', border: '1px solid #242424', borderRadius: '18px', padding: '28px', color: '#ddd' }}>
+            Bu marka/model için ürün bulunamadı.
+          </div>
+        ) : visibleProducts.map(product => {
           const image = cleanImagePath(product.image)
           const salePrice = calculateSalePrice(product)
           const message = encodeURIComponent(`Merhaba, bu ürünü sipariş vermek istiyorum:\n\nÜrün: ${product.title}\nKod: ${product.refNo || product.internalCode}\nFiyat: ${salePrice || 'Fiyat sorunuz'}\nKategori: ${product.category}`)
@@ -58,7 +110,7 @@ export default function ProductsPage() {
                 {image ? <img loading="lazy" src={image} alt={product.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ color: '#777' }}>Görsel yok</span>}
               </div>
               <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
-                <span style={{ color: '#999', fontSize: '13px' }}>{product.category || 'Diğer'} • Tesla</span>
+                <span style={{ color: '#999', fontSize: '13px' }}>{product.category || 'Diğer'} • {brandName}</span>
                 <h2 style={{ fontSize: '18px', margin: 0, lineHeight: 1.35 }}>{product.title}</h2>
                 <p style={{ color: '#aaa', margin: 0, fontSize: '14px' }}>Ref: {product.refNo || product.internalCode}</p>
                 <strong style={{ fontSize: '20px', marginTop: 'auto' }}>{salePrice || 'Fiyat sorunuz'}</strong>
