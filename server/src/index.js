@@ -13,6 +13,10 @@ const app = express()
 const prisma = new PrismaClient()
 const PORT = process.env.PORT || 4000
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret'
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://pasaotoparca.com'
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ''
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || ''
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `${FRONTEND_URL}/api/auth/google/callback`
 
 app.use(cors())
 app.use(helmet())
@@ -54,6 +58,70 @@ app.get('/', (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, time: new Date().toISOString() })
+})
+
+app.get('/api/auth/google', (req, res) => {
+  if (!GOOGLE_CLIENT_ID) return res.status(500).send('GOOGLE_CLIENT_ID eksik.')
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: GOOGLE_REDIRECT_URI,
+    response_type: 'code',
+    scope: 'openid email profile',
+    access_type: 'offline',
+    prompt: 'select_account'
+  })
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`)
+})
+
+app.get('/api/auth/google/callback', async (req, res) => {
+  try {
+    const code = req.query.code
+    if (!code) return res.redirect(`${FRONTEND_URL}/account?login=google_error`)
+
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        redirect_uri: GOOGLE_REDIRECT_URI,
+        grant_type: 'authorization_code'
+      })
+    })
+
+    const tokenData = await tokenResponse.json()
+    if (!tokenResponse.ok || !tokenData.access_token) {
+      console.error('Google token error:', tokenData)
+      return res.redirect(`${FRONTEND_URL}/account?login=google_error`)
+    }
+
+    const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` }
+    })
+    const profile = await profileResponse.json()
+
+    if (!profile.email) return res.redirect(`${FRONTEND_URL}/account?login=google_no_email`)
+
+    let user = await prisma.user.findUnique({ where: { email: profile.email } })
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          name: profile.name || profile.email.split('@')[0],
+          email: profile.email,
+          phone: '',
+          password: null,
+          role: 'customer'
+        }
+      })
+    }
+
+    const token = signUser(user)
+    res.redirect(`${FRONTEND_URL}/account?token=${encodeURIComponent(token)}&login=google_success`)
+  } catch (error) {
+    console.error(error)
+    res.redirect(`${FRONTEND_URL}/account?login=google_error`)
+  }
 })
 
 app.post('/api/auth/register', async (req, res) => {
