@@ -4,6 +4,14 @@ import brands from '../data/brands'
 export const whatsappNumber = '905077302703'
 export const wpBaseUrl = `https://wa.me/${whatsappNumber}`
 
+export const businessInfo = {
+  name: 'Paşa Oto Parça',
+  location: 'Konya Selçuklu Zafer Sanayi',
+  phone: '0507 730 27 03',
+  focus: 'Sıfır ve çıkma oto yedek parça satışı',
+  promise: 'Yeni nesil elektrikli araç parçalarında uzman yaklaşım, Türkiye geneli kargo, kargo takip numarası ve iade desteği.'
+}
+
 export function slugify(text) {
   return String(text || '').toLowerCase().replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
@@ -66,11 +74,15 @@ function HeaderSearch() {
 }
 
 export function SiteHeader() {
-  return <><div className="noticeBar"><span>Parça kodu, stok ve araç uyumluluğu sipariş öncesi WhatsApp üzerinden teyit edilir.</span><a href={whatsappUrl('Merhaba, ürün uyumluluğu ve stok hakkında bilgi almak istiyorum.')}>WhatsApp destek: 0507 730 27 03</a></div><header className="siteHeader"><a href="/" className="siteLogo"><img src="/logo-new.svg" alt="Paşa Oto Parça" /></a><HeaderSearch /><div className="headerActions"><a href="/account">Hesabım</a><a href="/cart/">Sepetim</a></div></header><nav className="desktopNav"><div className="megaWrap"><a href="/products/" className="allCats">☰ Tüm Kategoriler</a><div className="megaMenu"><div className="megaTitle">Marka ve modele göre hızlı seçim</div><div className="megaGrid">{brands.map(brand => <div key={brand.slug}><a className="megaBrand" href={productsUrl(brand.slug)}>{brandLogoText(brand.name)}</a>{brand.models.map(model => <a key={model} href={productsUrl(brand.slug, model)}>{model}</a>)}</div>)}</div></div></div><a href="/products/">Katalog</a><a href={whatsappUrl('Merhaba, parça kodu ile ürün teyidi almak istiyorum.')}>Parça Kodu Teyidi</a>{brands.slice(0, 5).map(brand => <a key={brand.slug} href={productsUrl(brand.slug)}>{brand.name}</a>)}<a href={whatsappUrl('Merhaba, ürün siparişi vermek istiyorum.')}>İletişim</a></nav></>
+  return <>
+    <div className="noticeBar"><span>{businessInfo.location} • Sıfır ve çıkma yedek parça • Türkiye geneli kargo</span><a href={whatsappUrl('Merhaba, ürün stok ve uyumluluk bilgisi almak istiyorum.')}>WhatsApp destek: {businessInfo.phone}</a></div>
+    <header className="siteHeader"><a href="/" className="siteLogo"><img src="/logo-new.svg" alt="Paşa Oto Parça" /></a><HeaderSearch /><div className="headerActions"><a href="/account">Hesabım</a><a href="/cart/">Sepetim</a></div></header>
+    <nav className="desktopNav"><div className="megaWrap"><a href="/products/" className="allCats">☰ Tüm Kategoriler</a><div className="megaMenu"><div className="megaTitle">Yeni nesil araç marka ve modelleri</div><div className="megaGrid">{brands.map(brand => <div key={brand.slug}><a className="megaBrand" href={productsUrl(brand.slug)}>{brandLogoText(brand.name)}</a>{brand.models.map(model => <a key={model} href={productsUrl(brand.slug, model)}>{model}</a>)}</div>)}</div></div></div><a href="/products/">Katalog</a><a href="/about">Hakkımızda</a><a href="/shipping-returns">Kargo & İade</a><a href={whatsappUrl('Merhaba, parça kodu ile ürün teyidi almak istiyorum.')}>Parça Kodu Teyidi</a>{brands.slice(0, 4).map(brand => <a key={brand.slug} href={productsUrl(brand.slug)}>{brand.name}</a>)}<a href="/contact">İletişim</a></nav>
+  </>
 }
 
 export function SiteFooter() {
-  return <footer className="siteFooter"><div className="footerBrand"><img src="/logo-new.svg" alt="Paşa Oto Parça" /><p>Yeni nesil araçlar için parça kodu, marka/model ve stok bilgisiyle hızlı teklif sunan oto yedek parça kataloğu.</p></div><div><h3>Katalog</h3><a href="/products/">Tüm Ürünler</a>{brands.slice(0, 4).map(brand => <a key={brand.slug} href={productsUrl(brand.slug)}>{brand.name}</a>)}</div><div><h3>Destek</h3><a href={whatsappUrl('Merhaba, ürün uyumluluğu hakkında bilgi almak istiyorum.')}>WhatsApp Destek</a><a href={whatsappUrl('Merhaba, parça kodu ile ürün teyidi almak istiyorum.')}>Parça Kodu Teyidi</a><a href="/account">Hesabım</a><a href="/cart/">Sepetim</a></div><div><h3>Güven</h3><span>Stok teyidi</span><span>Parça kodu kontrolü</span><span>Kargo bilgilendirme</span><span>WhatsApp üzerinden net teklif</span></div></footer>
+  return <footer className="siteFooter"><div className="footerBrand"><img src="/logo-new.svg" alt="Paşa Oto Parça" /><p>Konya Selçuklu Zafer Sanayi merkezli Paşa Oto Parça; sıfır ve çıkma yedek parça satışı yapar, yeni nesil elektrikli araç parçalarına ağırlık verir ve Türkiye geneli kargo desteği sunar.</p></div><div><h3>Katalog</h3><a href="/products/">Tüm Ürünler</a>{brands.slice(0, 4).map(brand => <a key={brand.slug} href={productsUrl(brand.slug)}>{brand.name}</a>)}</div><div><h3>Destek</h3><a href="/about">Hakkımızda</a><a href="/shipping-returns">Kargo & İade</a><a href={whatsappUrl('Merhaba, ürün uyumluluğu hakkında bilgi almak istiyorum.')}>WhatsApp Destek</a><a href={whatsappUrl('Merhaba, parça kodu ile ürün teyidi almak istiyorum.')}>Parça Kodu Teyidi</a></div><div><h3>Güven</h3><span>Stok teyidi</span><span>Kargo takip numarası</span><span>İade desteği</span><span>Sıfır ve çıkma parça seçenekleri</span></div></footer>
 }
 
 export function BottomNav() {
