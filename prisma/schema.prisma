@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?  @unique
+  phone       String?
+  password    String?
+  role        String   @default("customer")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders      Order[]
+}
+
+model Order {
+  id          String   @id @default(cuid())
+  status      String   @default("pending")
+  total       Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model AuctionVehicle {
+  id                 String   @id @default(cuid())
+  title              String
+  plate              String?
+  brand              String?
+  model              String?
+  year               String?
+  status             String   @default("gelecek")
+  purchasePrice      Float    @default(0)
+  auctionCommission  Float    @default(0)
+  cardCommission     Float    @default(0)
+  notaryCost         Float    @default(0)
+  towCost            Float    @default(0)
+  repairCost         Float    @default(0)
+  otherCost          Float    @default(0)
+  salePrice          Float    @default(0)
+  notes              String?  @db.Text
+  createdBy          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  neededParts        NeededPart[]
+  boughtParts        BoughtPart[]
+}
+
+model NeededPart {
+  id          String   @id @default(cuid())
+  name        String
+  done        Boolean  @default(false)
+  addedBy     String?
+  createdAt   DateTime @default(now())
+
+  vehicleId   String
+  vehicle     AuctionVehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+model BoughtPart {
+  id          String   @id @default(cuid())
+  name        String
+  price       Float    @default(0)
+  buyer       String?
+  createdAt   DateTime @default(now())
+
+  vehicleId   String
+  vehicle     AuctionVehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
