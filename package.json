@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 prisma generate && next build",
-    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
+    "start": "node scripts/start-hostinger.js",
     "prisma:generate": "PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 prisma generate",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate deploy",
