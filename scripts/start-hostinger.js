@@ -12,9 +12,8 @@ function run(command, args) {
   }
 }
 
-if (!fs.existsSync('.next')) {
-  console.log('Next.js build folder not found. Running npm run build first...')
-  run('npm', ['run', 'build'])
+console.log('Running fresh Next.js build before starting Hostinger app...')
+run('npm', ['run', 'build'])
 }
 
 const port = process.env.PORT || '3000'
