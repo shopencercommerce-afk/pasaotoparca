@@ -1,4 +1,3 @@
-const fs = require('fs')
 const { spawn, spawnSync } = require('child_process')
 
 function run(command, args) {
@@ -14,10 +13,11 @@ function run(command, args) {
 
 console.log('Running fresh Next.js build before starting Hostinger app...')
 run('npm', ['run', 'build'])
-}
 
 const port = process.env.PORT || '3000'
-const nextBin = process.platform === 'win32' ? 'node_modules/.bin/next.cmd' : 'node_modules/.bin/next'
+const nextBin = process.platform === 'win32'
+  ? 'node_modules/.bin/next.cmd'
+  : 'node_modules/.bin/next'
 
 const child = spawn(nextBin, ['start', '-H', '0.0.0.0', '-p', port], {
   stdio: 'inherit',
