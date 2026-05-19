@@ -9,8 +9,7 @@
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate deploy",
-    "prisma:dev": "prisma migrate dev",
-    "prestart": "prisma generate && sh -c '[ -d .next ] || next build'"
+    "prisma:dev": "prisma migrate dev"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
