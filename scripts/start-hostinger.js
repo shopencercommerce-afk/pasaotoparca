@@ -1,4 +1,5 @@
 const { spawn, spawnSync } = require('child_process')
+const fs = require('fs')
 
 function run(command, args) {
   const result = spawnSync(command, args, {
@@ -11,8 +12,15 @@ function run(command, args) {
   }
 }
 
-console.log('Running fresh Next.js build before starting Hostinger app...')
-run('npm', ['run', 'build'])
+const hasBuild = fs.existsSync('.next/BUILD_ID')
+const shouldBuild = process.env.FORCE_BUILD_ON_START === '1' || !hasBuild
+
+if (shouldBuild) {
+  console.log('Running Next.js build before start...')
+  run('npm', ['run', 'build'])
+} else {
+  console.log('Using existing Next.js build (.next/BUILD_ID found).')
+}
 
 const port = process.env.PORT || '3000'
 const nextBin = process.platform === 'win32'
