@@ -15,7 +15,7 @@ function run(command, args, options = {}) {
 }
 
 const hasBuild = fs.existsSync('.next/BUILD_ID')
-const forceBuild = true
+const forceBuild = process.env.FORCE_BUILD_ON_START === '1'
 
 if (forceBuild || !hasBuild) {
   console.log('Running Next.js build before start...')
