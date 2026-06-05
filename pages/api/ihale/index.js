@@ -11,6 +11,17 @@ function includeParts() {
   }
 }
 
+async function attachTasks(vehicles) {
+  if (!vehicles.length) return vehicles
+  const ids = vehicles.map(vehicle => vehicle.id)
+  const quotedIds = ids.map(id => `'${String(id).replace(/'/g, "''")}'`).join(',')
+  const tasks = await prisma.$queryRawUnsafe(`SELECT * FROM VehicleTask WHERE vehicleId IN (${quotedIds}) ORDER BY createdAt ASC`)
+  return vehicles.map(vehicle => ({
+    ...vehicle,
+    tasks: tasks.filter(task => task.vehicleId === vehicle.id)
+  }))
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
@@ -19,7 +30,7 @@ export default async function handler(req, res) {
         orderBy: { createdAt: 'desc' }
       })
 
-      return res.status(200).json(vehicles)
+      return res.status(200).json(await attachTasks(vehicles))
     }
 
     if (req.method === 'POST') {
@@ -51,7 +62,7 @@ export default async function handler(req, res) {
         include: includeParts()
       })
 
-      return res.status(201).json(vehicle)
+      return res.status(201).json({ ...vehicle, tasks: [] })
     }
 
     return res.status(405).json({ error: 'Method not allowed' })
