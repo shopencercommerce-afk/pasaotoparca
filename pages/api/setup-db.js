@@ -82,6 +82,19 @@ export default async function handler(req, res) {
       ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
     `)
 
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS VehicleTask (
+        id VARCHAR(191) NOT NULL,
+        title VARCHAR(191) NOT NULL,
+        done BOOLEAN NOT NULL DEFAULT false,
+        assignedTo VARCHAR(191) NULL,
+        createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+        vehicleId VARCHAR(191) NOT NULL,
+        INDEX VehicleTask_vehicleId_idx(vehicleId),
+        PRIMARY KEY (id)
+      ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    `)
+
     return res.status(200).json({ ok: true, message: 'Database tables are ready.' })
   } catch (error) {
     console.error(error)
