@@ -14,9 +14,11 @@ model User {
   name        String
   email       String?  @unique
   phone       String?
+  password    String?
   role        String   @default("customer")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
   orders      Order[]
 }
 
@@ -26,6 +28,7 @@ model Order {
   total       Float    @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
   userId      String
   user        User     @relation(fields: [userId], references: [id])
 }
@@ -61,12 +64,12 @@ model AuctionVehicle {
   towCost            Float    @default(0)
   repairCost         Float    @default(0)
   otherCost          Float    @default(0)
-  otherCostLabel     String?  @default("")
   salePrice          Float    @default(0)
   notes              String?  @db.Text
   createdBy          String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
   neededParts        NeededPart[]
   boughtParts        BoughtPart[]
 }
@@ -75,10 +78,9 @@ model NeededPart {
   id          String   @id @default(cuid())
   name        String
   done        Boolean  @default(false)
-  price       Float    @default(0)
-  cargoPrice  Float    @default(0)
   addedBy     String?
   createdAt   DateTime @default(now())
+
   vehicleId   String
   vehicle     AuctionVehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 }
@@ -87,9 +89,9 @@ model BoughtPart {
   id          String   @id @default(cuid())
   name        String
   price       Float    @default(0)
-  cargoPrice  Float    @default(0)
   buyer       String?
   createdAt   DateTime @default(now())
+
   vehicleId   String
   vehicle     AuctionVehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 }
