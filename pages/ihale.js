@@ -427,7 +427,8 @@ export default function IhalePage() {
       readyCars,
       repairCars
     }
-  }, [cars, allTasks])  if (!user) {
+  }, [cars, allTasks])    
+    if (!user) {
     return (
       <main className="loginPage">
         <section className="loginCard">
@@ -1322,7 +1323,8 @@ function CarModal({
       </div>
     </Modal>
   )
-}function GlobalStyle() {
+}
+function GlobalStyle() {
   return <style jsx global>{`
 *{box-sizing:border-box}
 body{margin:0;background:#101218;color:#eef1f7;font-family:Inter,Arial,sans-serif}
