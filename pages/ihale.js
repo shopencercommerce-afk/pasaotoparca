@@ -650,53 +650,25 @@ export default function IhalePage() {
               </div>
             ) : cars.map(rawCar => {
               const car = normalizeCar(rawCar)
-              const cost = totalCost(car)
-              const carProfit = profit(car)
 
               return (
                 <button
-                  className="miniCarCard"
+                  className="miniCarCard compactCarCard"
                   key={car.id}
                   onClick={() => setSelectedId(car.id)}
                 >
-                  <div className="miniTop">
+                  <div className="compactCarTop">
+                    <h2>{car.title}</h2>
                     <span className={`status ${car.status}`}>
                       {statusLabels[car.status]}
                     </span>
-
-                    <small>
-                      {car.plate || 'Plaka yok'}
-                    </small>
                   </div>
 
-                  <h2>{car.title}</h2>
-
                   <p>
-                    {[car.brand, car.model]
+                    {[car.brand, car.model, car.plate]
                       .filter(Boolean)
                       .join(' • ') || 'Araç bilgisi eklenmedi'}
                   </p>
-
-                  <div className="miniStats">
-
-                    <div>
-                      <span>Maliyet</span>
-                      <b>{formatMoney(cost)}</b>
-                    </div>
-
-                    <div>
-                      <span>K/Z</span>
-                      <b className={carProfit >= 0 ? 'profit' : 'loss'}>
-                        {formatMoney(carProfit)}
-                      </b>
-                    </div>
-
-                  </div>
-
-                  <footer>
-                    <em>{completion(car)}</em>
-                    <em>{taskCompletion(car)}</em>
-                  </footer>
                 </button>
               )
             })}
@@ -900,7 +872,9 @@ export default function IhalePage() {
 
     </main>
   )
-}function Modal({ title, onClose, children }) {
+}
+
+function Modal({ title, onClose, children }) {
   return (
     <div className="modalOverlay" onMouseDown={onClose}>
       <section className="modal" onMouseDown={e => e.stopPropagation()}>
@@ -1324,6 +1298,7 @@ function CarModal({
     </Modal>
   )
 }
+
 function GlobalStyle() {
   return <style jsx global>{`
 *{box-sizing:border-box}
@@ -1364,13 +1339,14 @@ button{cursor:pointer}
 .sectionHead h2{margin:0;font-size:30px;color:#151821}
 .sectionHead p{margin:4px 0 0;color:#667085}
 .backBtn{border:0;background:#151821;color:#fff;border-radius:999px;padding:11px 15px;font-weight:900}
-.carsGrid{max-width:1360px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:12px;align-items:start}
+.carsGrid{max-width:1360px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:start}
 .empty{grid-column:1/-1;background:#fff;color:#151821;border-radius:24px;padding:28px}
-.miniCarCard{width:100%;text-align:left;border:0;background:#fff;color:#151821;border-radius:22px;padding:14px;box-shadow:0 14px 50px rgba(23,27,38,.08);min-height:172px;display:flex;flex-direction:column;justify-content:space-between}
+.miniCarCard{width:100%;text-align:left;border:0;background:#fff;color:#151821;border-radius:20px;padding:12px;box-shadow:0 12px 38px rgba(23,27,38,.07);min-height:92px;display:flex;flex-direction:column;justify-content:center}
 .miniTop{display:flex;justify-content:space-between;gap:8px;align-items:center}
 .miniTop small{color:#667085;font-weight:800}
-.miniCarCard h2{font-size:18px;line-height:1.15;margin:10px 0 4px}
-.miniCarCard p{color:#667085;margin:0 0 10px;font-size:13px}
+.compactCarTop{display:flex;align-items:center;justify-content:space-between;gap:8px}.compactCarTop .status{flex:0 0 auto}
+.miniCarCard h2{font-size:16px;line-height:1.15;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.miniCarCard p{color:#667085;margin:8px 0 0;font-size:13px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .miniStats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0}
 .miniStats div{background:#f7f9fc;border-radius:14px;padding:10px}
 .miniStats span{display:block;color:#717989;font-size:11px;margin-bottom:4px}
@@ -1436,13 +1412,13 @@ button{cursor:pointer}
 .modal{max-height:92vh;border-radius:24px 24px 0 0;padding:16px}
 .modalHead h2{font-size:23px}
 .carsGrid{grid-template-columns:repeat(2,1fr);gap:10px}
-.miniCarCard{padding:12px;min-height:165px}
-.miniCarCard h2{font-size:16px}
+.miniCarCard{padding:11px;min-height:86px}
+.miniCarCard h2{font-size:15px}
 .miniStats{grid-template-columns:1fr}
 .sectionHead{align-items:flex-start;display:grid}
 }
 @media(max-width:430px){
-.carsGrid{grid-template-columns:1fr}
+.carsGrid{grid-template-columns:repeat(2,1fr)}
 .summaryGrid{grid-template-columns:1fr 1fr}
 }
   `}</style>
