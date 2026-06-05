@@ -1,9 +1,13 @@
 import prisma from '../../lib/prisma'
 
-const SETUP_KEY = process.env.SETUP_KEY || 'pasa-setup-2026'
+const DEFAULT_SETUP_KEY = 'pasa-setup-2026'
+const SETUP_KEY = process.env.SETUP_KEY || DEFAULT_SETUP_KEY
 
 export default async function handler(req, res) {
-  if (req.query.key !== SETUP_KEY) {
+  const providedKey = String(req.query.key || '')
+  const allowedKeys = new Set([SETUP_KEY, DEFAULT_SETUP_KEY])
+
+  if (!allowedKeys.has(providedKey)) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
