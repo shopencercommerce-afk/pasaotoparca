@@ -1,16 +1,22 @@
 import prisma from '../../../lib/prisma'
 
+function toNumber(value) {
+  return Number(String(value || '').replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '')) || 0
+}
+
+function includeParts() {
+  return {
+    neededParts: { orderBy: { createdAt: 'asc' } },
+    boughtParts: { orderBy: { createdAt: 'asc' } }
+  }
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const vehicles = await prisma.auctionVehicle.findMany({
-        include: {
-          neededParts: true,
-          boughtParts: true
-        },
-        orderBy: {
-          createdAt: 'desc'
-        }
+        include: includeParts(),
+        orderBy: { createdAt: 'desc' }
       })
 
       return res.status(200).json(vehicles)
@@ -19,29 +25,30 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const body = req.body || {}
 
+      if (!String(body.title || '').trim()) {
+        return res.status(400).json({ error: 'Araç adı zorunlu.' })
+      }
+
       const vehicle = await prisma.auctionVehicle.create({
         data: {
-          title: body.title || '',
+          title: String(body.title || '').trim(),
           plate: body.plate || '',
           brand: body.brand || '',
           model: body.model || '',
           year: body.year || '',
           status: body.status || 'gelecek',
-          purchasePrice: Number(body.purchasePrice || 0),
-          auctionCommission: Number(body.auctionCommission || 0),
-          cardCommission: Number(body.cardCommission || 0),
-          notaryCost: Number(body.notaryCost || 0),
-          towCost: Number(body.towCost || 0),
-          repairCost: Number(body.repairCost || 0),
-          otherCost: Number(body.otherCost || 0),
-          salePrice: Number(body.salePrice || 0),
+          purchasePrice: toNumber(body.purchasePrice),
+          auctionCommission: toNumber(body.auctionCommission),
+          cardCommission: toNumber(body.cardCommission),
+          notaryCost: toNumber(body.notaryCost),
+          towCost: toNumber(body.towCost),
+          repairCost: toNumber(body.repairCost),
+          otherCost: toNumber(body.otherCost),
+          salePrice: toNumber(body.salePrice),
           notes: body.notes || '',
           createdBy: body.createdBy || ''
         },
-        include: {
-          neededParts: true,
-          boughtParts: true
-        }
+        include: includeParts()
       })
 
       return res.status(201).json(vehicle)
@@ -50,6 +57,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   } catch (error) {
     console.error(error)
-    return res.status(500).json({ error: 'Server error' })
+    return res.status(500).json({ error: error.message || 'Server error' })
   }
 }
