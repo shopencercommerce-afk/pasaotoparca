@@ -1,88 +1,194 @@
 import { useEffect, useMemo, useState } from 'react'
 
-const partners = ['Mustafa', 'Bedirhan', 'Ömer']
-const accessCode = process.env.NEXT_PUBLIC_IHALE_ACCESS_CODE || 'pasa2026'
 const statusLabels = { gelecek: 'Gelecek', tamirde: 'Tamirde', hazir: 'Hazır', satildi: 'Satıldı' }
-const expenseOptions = ['Autogong Komisyon', 'Kredi Kartı Komisyon', 'Noter Harç', 'Çekici', 'Otopark', 'Kaporta', 'Boya', 'Rot', 'Plaka', 'Ruhsat', 'Vize', 'Ekspertiz', 'Tamir', 'Yıkama', 'Yakıt', 'Kendin Ekle']
-const legacyCosts = [['auctionCommission', 'Autogong Komisyon'], ['cardCommission', 'Kredi Kartı Komisyon'], ['notaryCost', 'Noter Harç'], ['towCost', 'Çekici'], ['repairCost', 'Tamir'], ['otherCost', 'Diğer']]
-const emptyVehicle = { title: '', brand: '', model: '', plate: '', status: 'gelecek', purchasePrice: '', auctionCommission: '', cardCommission: '', notaryCost: '', towCost: '', repairCost: '', otherCost: '', salePrice: '', notes: '', neededParts: [], boughtParts: [], tasks: [] }
-const META_TAG = '\n\nPASA_PANEL_DATA:'
 
-function toNumber(value) { return Number(String(value || '').replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '')) || 0 }
-function formatInputMoney(value) { const raw = String(value || '').replace(/[^0-9]/g, ''); return raw ? new Intl.NumberFormat('tr-TR').format(Number(raw)) : '' }
-function formatMoney(value) { return `${new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(value || 0)} TL` }
-function normalizeCar(car) { return { ...emptyVehicle, ...car, neededParts: car?.neededParts || [], boughtParts: car?.boughtParts || [], tasks: car?.tasks || [] } }
-function splitNotes(notes) { const text = String(notes || ''); const index = text.indexOf(META_TAG); if (index < 0) return { publicNotes: text, meta: { expenses: [], neededParts: {} } }; try { const meta = JSON.parse(text.slice(index + META_TAG.length)); return { publicNotes: text.slice(0, index), meta: { expenses: [], neededParts: {}, ...(meta || {}) } } } catch (_) { return { publicNotes: text.slice(0, index), meta: { expenses: [], neededParts: {} } } } }
-function notesWithMeta(publicNotes, meta) { return `${publicNotes || ''}${META_TAG}${JSON.stringify({ expenses: meta?.expenses || [], neededParts: meta?.neededParts || {} })}` }
-function metaOf(car) { return splitNotes(car?.notes).meta }
-function visibleNotes(car) { return splitNotes(car?.notes).publicNotes }
-function partKey(part) { return String(part?.name || '').trim().toLocaleLowerCase('tr-TR') }
-function partMeta(car, part) { return metaOf(car).neededParts?.[partKey(part)] || {} }
-function legacyExpenseList(car) { const item = normalizeCar(car); return legacyCosts.map(([key, label]) => ({ id: `legacy-${key}`, key, label, amount: toNumber(item[key]), legacy: true })).filter(item => item.amount > 0) }
-function customExpenseList(car) { return (metaOf(car).expenses || []).map((item, index) => ({ id: item.id || `expense-${index}`, label: item.label || 'Masraf', amount: toNumber(item.amount), legacy: false })) }
-function allExpenses(car) { return [...legacyExpenseList(car), ...customExpenseList(car)] }
-function neededPartsCost(car) { return (car.neededParts || []).reduce((sum, part) => { if (!part.done) return sum; const meta = partMeta(car, part); return sum + toNumber(meta.price) + toNumber(meta.cargo) }, 0) }
-async function readJson(response) { const data = await response.json().catch(() => null); if (!response.ok) throw new Error(data?.error || 'İşlem başarısız'); return data }
-function totalCost(car) { const item = normalizeCar(car); const bought = item.boughtParts.reduce((sum, part) => sum + toNumber(part.price), 0); const legacy = legacyCosts.reduce((sum, [key]) => sum + toNumber(item[key]), 0); const custom = customExpenseList(item).reduce((sum, exp) => sum + toNumber(exp.amount), 0); return toNumber(item.purchasePrice) + legacy + custom + bought + neededPartsCost(item) }
-function profit(car) { return toNumber(car.salePrice) - totalCost(car) }
-function partnerSpend(car, name) { return (car.boughtParts || []).filter(part => part.buyer === name).reduce((sum, part) => sum + toNumber(part.price), 0) }
+function toNumber(value) {
+  return Number(String(value || '').replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '')) || 0
+}
+
+function formatMoney(value) {
+  return `${new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(value || 0)} TL`
+}
+
+function totalCost(car) {
+  const parts = (car.boughtParts || []).reduce((sum, part) => sum + toNumber(part.price), 0)
+  return toNumber(car.purchasePrice) + toNumber(car.auctionCommission) + toNumber(car.cardCommission) + toNumber(car.notaryCost) + toNumber(car.towCost) + toNumber(car.repairCost) + toNumber(car.otherCost) + parts
+}
+
+async function readJson(response) {
+  const data = await response.json().catch(() => null)
+  if (!response.ok) throw new Error(data?.error || 'İşlem başarısız')
+  return data
+}
 
 export default function IhalePage() {
-  const [user, setUser] = useState('')
-  const [loginName, setLoginName] = useState('')
-  const [loginCode, setLoginCode] = useState('')
   const [cars, setCars] = useState([])
   const [stockItems, setStockItems] = useState([])
-  const [view, setView] = useState('home')
-  const [formOpen, setFormOpen] = useState(false)
-  const [selectedId, setSelectedId] = useState('')
-  const [carForm, setCarForm] = useState(emptyVehicle)
-  const [partInputs, setPartInputs] = useState({})
-  const [taskInputs, setTaskInputs] = useState({})
-  const [stockInputs, setStockInputs] = useState({})
   const [errorMessage, setErrorMessage] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState({ title: '', brand: '', model: '', plate: '', status: 'gelecek', purchasePrice: '' })
 
-  useEffect(() => { if (typeof window === 'undefined') return; setUser(localStorage.getItem('pasaIhaleUser') || ''); loadCars(); loadStock() }, [])
-  async function loadCars() { setErrorMessage(''); try { const data = await readJson(await fetch('/api/ihale')); setCars(Array.isArray(data) ? data.map(normalizeCar) : []) } catch (error) { setErrorMessage(error.message || 'Araç kayıtları okunamadı.') } }
-  async function loadStock() { try { const data = await readJson(await fetch('/api/stok')); setStockItems(Array.isArray(data) ? data : []) } catch (_) {} }
-  async function persistCar(nextCar, oldCars) { setErrorMessage(''); try { const saved = await readJson(await fetch(`/api/ihale/${nextCar.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(nextCar) })); setCars(current => current.map(car => car.id === saved.id ? normalizeCar({ ...saved, tasks: nextCar.tasks || car.tasks || [] }) : car)) } catch (error) { setCars(oldCars); setErrorMessage(error.message || 'Araç güncellenemedi.') } }
-  async function persistTasks(carId, tasks, oldCars) { setErrorMessage(''); try { const savedTasks = await readJson(await fetch('/api/ihale/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vehicleId: carId, tasks }) })); setCars(current => current.map(car => car.id === carId ? normalizeCar({ ...car, tasks: savedTasks }) : car)) } catch (error) { setCars(oldCars); setErrorMessage(error.message || 'Görevler kaydedilemedi.') } }
-  function login(e) { e.preventDefault(); const normalized = loginName.trim().toLocaleLowerCase('tr-TR'); const found = partners.find(name => name.toLocaleLowerCase('tr-TR') === normalized || (normalized === 'omer' && name === 'Ömer')); if (!found || loginCode !== accessCode) return alert('Giriş bilgileri hatalı.'); localStorage.setItem('pasaIhaleUser', found); setUser(found); loadCars(); loadStock() }
-  function logout() { localStorage.removeItem('pasaIhaleUser'); setUser(''); setLoginName(''); setLoginCode('') }
-  function updateCar(id, patch) { const oldCars = cars; const nextCars = cars.map(car => car.id === id ? normalizeCar({ ...car, ...patch }) : car); const nextCar = nextCars.find(car => car.id === id); setCars(nextCars); if (nextCar) persistCar(nextCar, oldCars) }
-  function updateTasks(carId, tasks) { const oldCars = cars; const nextCars = cars.map(car => car.id === carId ? normalizeCar({ ...car, tasks }) : car); setCars(nextCars); persistTasks(carId, tasks, oldCars) }
-  function moneyPatch(id, key, value) { updateCar(id, { [key]: formatInputMoney(value) }) }
-  function updateMeta(carId, changer) { const car = cars.find(item => item.id === carId); if (!car) return; const split = splitNotes(car.notes); const nextMeta = changer(split.meta) || split.meta; updateCar(carId, { notes: notesWithMeta(split.publicNotes, nextMeta) }) }
-  async function saveCar(e) { e.preventDefault(); if (!carForm.title.trim()) return alert('Araç adı yazmalısın.'); setErrorMessage(''); try { const created = await readJson(await fetch('/api/ihale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...carForm, createdBy: user }) })); const next = normalizeCar(created); setCars([next, ...cars]); setSelectedId(next.id); setCarForm(emptyVehicle); setFormOpen(false); setView('cars') } catch (error) { setErrorMessage(error.message || 'Araç kaydedilemedi.') } }
-  async function deleteCar(id) { if (!confirm('Bu araç kartı silinsin mi?')) return; const oldCars = cars; setCars(cars.filter(car => car.id !== id)); setSelectedId(''); try { await readJson(await fetch(`/api/ihale/${id}`, { method: 'DELETE' })) } catch (error) { setCars(oldCars); setErrorMessage(error.message || 'Araç silinemedi.') } }
-  function addExpense(carId) { const selected = partInputs[`expense-category-${carId}`] || 'Otopark'; const custom = (partInputs[`expense-custom-${carId}`] || '').trim(); const amount = partInputs[`expense-amount-${carId}`] || ''; if (!amount) return alert('Masraf tutarı yazmalısın.'); if (selected === 'Kendin Ekle' && !custom) return alert('Masraf kategorisini yazmalısın.'); updateMeta(carId, meta => ({ ...meta, expenses: [...(meta.expenses || []), { id: `${Date.now()}`, label: selected === 'Kendin Ekle' ? custom : selected, amount: toNumber(amount) }] })); setPartInputs({ ...partInputs, [`expense-amount-${carId}`]: '', [`expense-custom-${carId}`]: '' }) }
-  function clearExpense(carId, item) { if (item.legacy) return moneyPatch(carId, item.key, ''); updateMeta(carId, meta => ({ ...meta, expenses: (meta.expenses || []).filter(exp => String(exp.id) !== String(item.id)) })) }
-  function addNeededPart(carId) { const value = (partInputs[`need-${carId}`] || '').trim(); if (!value) return; const car = cars.find(item => item.id === carId); if (!car) return; updateCar(carId, { neededParts: [...(car.neededParts || []), { name: value, done: false, addedBy: user }] }); setPartInputs({ ...partInputs, [`need-${carId}`]: '' }) }
-  function toggleNeededPart(carId, partId) { const car = cars.find(item => item.id === carId); if (!car) return; updateCar(carId, { neededParts: (car.neededParts || []).map(part => part.id === partId ? { ...part, done: !part.done } : part) }) }
-  function setNeededMoney(carId, part, field, value) { updateMeta(carId, meta => ({ ...meta, neededParts: { ...(meta.neededParts || {}), [partKey(part)]: { ...((meta.neededParts || {})[partKey(part)] || {}), [field]: formatInputMoney(value) } } })) }
-  function removeNeededPart(carId, part) { const car = cars.find(item => item.id === carId); if (!car) return; updateCar(carId, { neededParts: (car.neededParts || []).filter(item => item.id !== part.id) }); updateMeta(carId, meta => { const neededParts = { ...(meta.neededParts || {}) }; delete neededParts[partKey(part)]; return { ...meta, neededParts } }) }
-  function addBoughtPart(carId) { const name = (partInputs[`bought-name-${carId}`] || '').trim(); const price = partInputs[`bought-price-${carId}`] || ''; const buyer = partInputs[`bought-buyer-${carId}`] || user; if (!name) return alert('Alınan parça adı yazmalısın.'); const car = cars.find(item => item.id === carId); if (!car) return; updateCar(carId, { boughtParts: [...(car.boughtParts || []), { name, price, buyer }] }); setPartInputs({ ...partInputs, [`bought-name-${carId}`]: '', [`bought-price-${carId}`]: '', [`bought-buyer-${carId}`]: user }) }
-  function removeBoughtPart(carId, partId) { const car = cars.find(item => item.id === carId); if (!car) return; updateCar(carId, { boughtParts: (car.boughtParts || []).filter(part => part.id !== partId) }) }
-  function addTask(carId) { const title = (taskInputs[`task-title-${carId}`] || '').trim(); const assignedTo = taskInputs[`task-user-${carId}`] || user; if (!title) return alert('Görev yazmalısın.'); const car = cars.find(item => item.id === carId); if (!car) return; updateTasks(carId, [...(car.tasks || []), { title, done: false, assignedTo }]); setTaskInputs({ ...taskInputs, [`task-title-${carId}`]: '', [`task-user-${carId}`]: user }) }
-  function toggleTask(carId, taskIndex) { const car = cars.find(item => item.id === carId); if (!car) return; updateTasks(carId, (car.tasks || []).map((task, index) => index === taskIndex ? { ...task, done: !task.done } : task)) }
-  function removeTask(carId, taskIndex) { const car = cars.find(item => item.id === carId); if (!car) return; updateTasks(carId, (car.tasks || []).filter((_, index) => index !== taskIndex)) }
-  async function useStockForCar(carId) { const stockId = stockInputs[`stock-${carId}`]; if (!stockId) return alert('Stoktan ürün seçmelisin.'); const car = cars.find(item => item.id === carId); const stock = stockItems.find(item => item.id === stockId); if (!car || !stock) return alert('Araç veya stok ürünü bulunamadı.'); if (Number(stock.quantity || 0) <= 0) return alert('Bu ürün stokta yok.'); const vehicleText = [car.plate, car.brand, car.model, car.title].filter(Boolean).join(' - '); const nextQuantity = Number(stock.quantity || 0) - 1; const updatedStock = { ...stock, quantity: nextQuantity, note: [stock.note || '', `${new Date().toLocaleString('tr-TR')} - ${vehicleText} için kullanıldı.`].filter(Boolean).join('\n'), status: nextQuantity <= 0 ? 'kullanildi' : stock.status }; const nextCar = { ...car, boughtParts: [...(car.boughtParts || []), { name: [stock.brand, stock.productName, stock.partCode].filter(Boolean).join(' - '), price: stock.buyPrice || stock.salePrice || 0, buyer: 'Stoktan' }] }; const oldCars = cars; try { await readJson(await fetch(`/api/stok/${stock.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedStock) })); const saved = await readJson(await fetch(`/api/ihale/${car.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(nextCar) })); setStockItems(current => current.map(item => item.id === stock.id ? updatedStock : item)); setCars(current => current.map(item => item.id === car.id ? normalizeCar({ ...saved, tasks: car.tasks || [] }) : item)); setStockInputs({ ...stockInputs, [`stock-${carId}`]: '' }); alert('Stoktan kullanıldı. Stok adedi düşüldü ve araca işlendi.') } catch (error) { setCars(oldCars); setErrorMessage(error.message || 'Stoktan kullanım kaydedilemedi.') } }
+  useEffect(() => {
+    loadAll()
+  }, [])
 
-  const selectedCar = cars.find(car => car.id === selectedId) ? normalizeCar(cars.find(car => car.id === selectedId)) : null
-  const allTasks = useMemo(() => cars.flatMap(car => (car.tasks || []).map((task, index) => ({ ...task, index, carId: car.id, carTitle: car.title, carPlate: car.plate, carStatus: car.status }))), [cars])
-  const summary = useMemo(() => { const totalInvestment = cars.reduce((sum, car) => sum + totalCost(car), 0); const totalSales = cars.reduce((sum, car) => sum + toNumber(car.salePrice), 0); const soldProfit = cars.filter(car => car.status === 'satildi').reduce((sum, car) => sum + profit(car), 0); return { totalInvestment, totalSales, soldProfit, byPartner: partners.map(name => ({ name, spend: cars.reduce((sum, car) => sum + partnerSpend(car, name), 0) })), openTasks: allTasks.filter(task => !task.done).length, readyCars: cars.filter(car => car.status === 'hazir').length, repairCars: cars.filter(car => car.status === 'tamirde').length } }, [cars, allTasks])
+  async function loadAll() {
+    setLoading(true)
+    setErrorMessage('')
+    try {
+      const [vehicles, stocks] = await Promise.all([
+        readJson(await fetch('/api/ihale')),
+        readJson(await fetch('/api/stok'))
+      ])
+      setCars(Array.isArray(vehicles) ? vehicles : [])
+      setStockItems(Array.isArray(stocks) ? stocks : [])
+    } catch (error) {
+      setErrorMessage(error.message || 'Kayıtlar okunamadı.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  if (!user) return <main className="loginPage"><section className="loginCard"><span>PANEL</span><h1>İhale Takip</h1><p>Bu sayfa site içinde görünmez. Yetkili ortak girişi gerektirir.</p><form onSubmit={login}><input value={loginName} onChange={e => setLoginName(e.target.value)} placeholder="Kullanıcı adı" autoFocus /><input value={loginCode} onChange={e => setLoginCode(e.target.value)} placeholder="Giriş kodu" /><button>Giriş Yap</button></form><small>Giriş bilgisi olmayan kişiler panele erişemez.</small></section><GlobalStyle /></main>
+  async function addCar(e) {
+    e.preventDefault()
+    if (!form.title.trim()) return alert('Araç adı yazmalısın.')
+    try {
+      const created = await readJson(await fetch('/api/ihale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
+      }))
+      setCars(current => [created, ...current])
+      setForm({ title: '', brand: '', model: '', plate: '', status: 'gelecek', purchasePrice: '' })
+    } catch (error) {
+      setErrorMessage(error.message || 'Araç eklenemedi.')
+    }
+  }
 
-  return <main className="page"><header className="topbar"><div><span>PAŞA OTO PARÇA</span><h1>İhale Araç Ortak Paneli</h1><p>Giriş yapan: <b>{user}</b></p></div><div className="topActions"><button onClick={() => setFormOpen(true)}>+ Araç Ekle</button><button onClick={() => { loadCars(); loadStock() }}>Yenile</button><button className="ghost" onClick={logout}>Çıkış</button></div></header>{errorMessage ? <div className="errorBox">{errorMessage}</div> : null}<section className="summaryGrid"><button className={view === 'cars' ? 'summary active' : 'summary'} onClick={() => setView('cars')}><span>🚗 Araçlar</span><strong>{cars.length}</strong><small>Toplam araç</small></button><button className={view === 'tasks' ? 'summary active' : 'summary'} onClick={() => setView('tasks')}><span>📋 Görevler</span><strong>{summary.openTasks}</strong><small>Açık görev</small></button><button className="summary" onClick={() => setView('cars')}><span>🔧 Tamirde</span><strong>{summary.repairCars}</strong><small>Servisteki araç</small></button><button className="summary" onClick={() => setView('cars')}><span>✅ Hazır</span><strong>{summary.readyCars}</strong><small>Satışa hazır</small></button></section>{view === 'home' ? <><section className="homeHint"><h2>Panel Ana Ekranı</h2><p>Araçları görmek için Araçlar kutusuna, görevleri görmek için Görevler kutusuna tıkla.</p></section><section className="moneyGrid"><div><span>Toplam Maliyet</span><strong>{formatMoney(summary.totalInvestment)}</strong></div><div><span>Toplam Satış</span><strong>{formatMoney(summary.totalSales)}</strong></div><div><span>Satılan Kâr/Zarar</span><strong className={summary.soldProfit >= 0 ? 'profit' : 'loss'}>{formatMoney(summary.soldProfit)}</strong></div></section><section className="partnerGrid">{summary.byPartner.map(item => <div key={item.name}><span>{item.name} parça harcaması</span><strong>{formatMoney(item.spend)}</strong></div>)}</section></> : null}{view === 'cars' ? <section className="carsPage"><div className="sectionHead"><button className="backBtn" onClick={() => setView('home')}>← Ana Ekran</button><div><h2>Araçlar</h2><p>Araç kartına tıklayınca detay penceresi açılır.</p></div></div><section className="carsGrid">{cars.length === 0 ? <div className="empty"><h2>Henüz araç kartı yok.</h2><p>İlk aracı ekleyerek maliyet, parça ve satış takibine başlayabilirsin.</p></div> : cars.map(rawCar => { const car = normalizeCar(rawCar); return <button className="miniCarCard compactCarCard" key={car.id} onClick={() => setSelectedId(car.id)}><div className="compactCarTop"><h2>{car.title}</h2><span className={`status ${car.status}`}>{statusLabels[car.status]}</span></div><p>{[car.brand, car.model, car.plate].filter(Boolean).join(' • ') || 'Araç bilgisi eklenmedi'}</p></button> })}</section></section> : null}{view === 'tasks' ? <section className="tasksPage"><div className="sectionHead"><button className="backBtn" onClick={() => setView('home')}>← Ana Ekran</button><div><h2>Aktif Görevler</h2><p>Tüm araçlara ait yapılacak işler burada listelenir.</p></div></div><section className="tasksPanel">{allTasks.length === 0 ? <div className="empty"><h2>Henüz görev yok.</h2><p>Araç detayına girip görev ekleyebilirsin.</p></div> : <div className="taskList">{allTasks.map(task => <div className={task.done ? 'taskRow doneTask' : 'taskRow'} key={`${task.carId}-${task.index}`}><label><input type="checkbox" checked={!!task.done} onChange={() => toggleTask(task.carId, task.index)} /><span>{task.title}</span></label><div className="taskVehicle"><small>{task.carTitle}</small>{task.carPlate ? <small>{task.carPlate}</small> : null}</div><button onClick={() => setSelectedId(task.carId)}>Aracı Aç</button></div>)}</div>}</section></section> : null}{formOpen ? <Modal title="Yeni Araç Kartı" onClose={() => setFormOpen(false)}><form onSubmit={saveCar} className="carForm simple"><input placeholder="Araç adı" value={carForm.title} onChange={e => setCarForm({ ...carForm, title: e.target.value })} /><input placeholder="Marka" value={carForm.brand} onChange={e => setCarForm({ ...carForm, brand: e.target.value })} /><input placeholder="Model" value={carForm.model} onChange={e => setCarForm({ ...carForm, model: e.target.value })} /><input placeholder="Plaka" value={carForm.plate} onChange={e => setCarForm({ ...carForm, plate: e.target.value })} /><button>Aracı Kaydet</button></form></Modal> : null}{selectedCar ? <CarModal car={selectedCar} user={user} onClose={() => setSelectedId('')} updateCar={updateCar} deleteCar={deleteCar} moneyPatch={moneyPatch} addExpense={addExpense} clearExpense={clearExpense} addNeededPart={addNeededPart} toggleNeededPart={toggleNeededPart} setNeededMoney={setNeededMoney} removeNeededPart={removeNeededPart} addBoughtPart={addBoughtPart} removeBoughtPart={removeBoughtPart} addTask={addTask} toggleTask={toggleTask} removeTask={removeTask} partInputs={partInputs} setPartInputs={setPartInputs} taskInputs={taskInputs} setTaskInputs={setTaskInputs} stockItems={stockItems} stockInputs={stockInputs} setStockInputs={setStockInputs} useStockForCar={useStockForCar} /> : null}<GlobalStyle /></main>
+  async function updateCar(car, patch) {
+    const oldCars = cars
+    const nextCar = { ...car, ...patch }
+    setCars(current => current.map(item => item.id === car.id ? nextCar : item))
+    try {
+      const saved = await readJson(await fetch(`/api/ihale/${car.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextCar)
+      }))
+      setCars(current => current.map(item => item.id === car.id ? { ...saved, tasks: nextCar.tasks || [] } : item))
+    } catch (error) {
+      setCars(oldCars)
+      setErrorMessage(error.message || 'Araç güncellenemedi.')
+    }
+  }
+
+  async function useStock(car, stockId) {
+    const stock = stockItems.find(item => item.id === stockId)
+    if (!stock) return
+    const qty = Number(stock.quantity || 0)
+    if (qty <= 0) return alert('Bu ürün stokta yok.')
+
+    const nextQty = qty - 1
+    const updatedStock = {
+      ...stock,
+      quantity: nextQty,
+      status: nextQty <= 0 ? 'kullanildi' : stock.status,
+      note: [stock.note || '', `${new Date().toLocaleString('tr-TR')} - ${car.title} için kullanıldı.`].filter(Boolean).join('\n')
+    }
+    const nextCar = {
+      ...car,
+      boughtParts: [
+        ...(car.boughtParts || []),
+        {
+          name: [stock.brand, stock.productName, stock.partCode].filter(Boolean).join(' - '),
+          price: stock.buyPrice || stock.salePrice || 0,
+          buyer: 'Stoktan'
+        }
+      ]
+    }
+
+    const oldCars = cars
+    const oldStocks = stockItems
+    setStockItems(current => current.map(item => item.id === stock.id ? updatedStock : item))
+    setCars(current => current.map(item => item.id === car.id ? nextCar : item))
+
+    try {
+      await readJson(await fetch(`/api/stok/${stock.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedStock)
+      }))
+      const saved = await readJson(await fetch(`/api/ihale/${car.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextCar)
+      }))
+      setCars(current => current.map(item => item.id === car.id ? { ...saved, tasks: nextCar.tasks || [] } : item))
+    } catch (error) {
+      setCars(oldCars)
+      setStockItems(oldStocks)
+      setErrorMessage(error.message || 'Stoktan kullanım kaydedilemedi.')
+    }
+  }
+
+  const summary = useMemo(() => {
+    const total = cars.reduce((sum, car) => sum + totalCost(car), 0)
+    const sold = cars.filter(car => car.status === 'satildi').reduce((sum, car) => sum + toNumber(car.salePrice), 0)
+    return { total, sold, count: cars.length, ready: cars.filter(car => car.status === 'hazir').length }
+  }, [cars])
+
+  return <main className="page">
+    <section className="switchBar">
+      <a className="active" href="/ihale">İhale Sayfasına Geç</a>
+      <a href="/stok">Stok Sayfasına Geç</a>
+    </section>
+
+    <section className="summaryGrid">
+      <div><span>Araç Sayısı</span><strong>{summary.count}</strong></div>
+      <div><span>Hazır</span><strong>{summary.ready}</strong></div>
+      <div><span>Toplam Maliyet</span><strong>{formatMoney(summary.total)}</strong></div>
+      <div><span>Toplam Satış</span><strong>{formatMoney(summary.sold)}</strong></div>
+    </section>
+
+    {errorMessage ? <div className="errorBox">{errorMessage}</div> : null}
+
+    <section className="wrap">
+      <form className="panel" onSubmit={addCar}>
+        <h2>Araç Ekle</h2>
+        <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Araç adı" />
+        <input value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} placeholder="Marka" />
+        <input value={form.model} onChange={e => setForm({ ...form, model: e.target.value })} placeholder="Model" />
+        <input value={form.plate} onChange={e => setForm({ ...form, plate: e.target.value })} placeholder="Plaka" />
+        <input value={form.purchasePrice} onChange={e => setForm({ ...form, purchasePrice: e.target.value })} placeholder="Araç bedeli" />
+        <button className="primary">Kaydet</button>
+      </form>
+
+      <section className="panel">
+        <div className="listHead"><h2>Araçlar</h2><button onClick={loadAll}>Yenile</button></div>
+        {loading ? <div className="empty">Yükleniyor...</div> : null}
+        {!loading && cars.length === 0 ? <div className="empty">Araç kaydı yok.</div> : null}
+        <div className="cards">
+          {cars.map(car => <article className="card" key={car.id}>
+            <div className="cardTop">
+              <h3>{car.title}</h3>
+              <select value={car.status || 'gelecek'} onChange={e => updateCar(car, { status: e.target.value })}>{Object.entries(statusLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
+            </div>
+            <p>{[car.brand, car.model, car.plate].filter(Boolean).join(' • ') || 'Araç bilgisi yok'}</p>
+            <div className="mini"><span>Maliyet: <b>{formatMoney(totalCost(car))}</b></span><span>Satış: <b>{formatMoney(toNumber(car.salePrice))}</b></span></div>
+            <div className="stockUse">
+              <select defaultValue="" onChange={e => { if (e.target.value) { useStock(car, e.target.value); e.target.value = '' } }}>
+                <option value="">Stoktan parça ekle</option>
+                {stockItems.filter(item => Number(item.quantity || 0) > 0).map(item => <option key={item.id} value={item.id}>{item.brand} - {item.productName} | Stok: {item.quantity}</option>)}
+              </select>
+            </div>
+            {(car.boughtParts || []).length ? <ul>{car.boughtParts.map((part, index) => <li key={part.id || index}>{part.name} - {formatMoney(toNumber(part.price))}</li>)}</ul> : null}
+          </article>)}
+        </div>
+      </section>
+    </section>
+
+    <style jsx>{`
+      .page{min-height:100vh;background:#f4f6fb;color:#151821;padding:22px;font-family:Inter,Arial,sans-serif}.switchBar{max-width:1320px;margin:0 auto 14px;display:flex;gap:10px;flex-wrap:wrap}.switchBar a{background:#151821;color:#fff;text-decoration:none;border-radius:999px;padding:13px 18px;font-weight:950}.switchBar .active{background:#f32334}.summaryGrid{max-width:1320px;margin:0 auto 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.summaryGrid div,.panel{background:#fff;border:1px solid #e5e8ef;border-radius:22px;padding:18px;box-shadow:0 16px 50px rgba(31,35,45,.05)}.summaryGrid span{display:block;color:#687080;font-size:13px;font-weight:800;margin-bottom:7px}.summaryGrid strong{font-size:22px}.errorBox{max-width:1320px;margin:0 auto 14px;background:#fff0f1;color:#b91523;border-radius:16px;padding:14px;font-weight:900}.wrap{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}h2{margin:0 0 14px}input,select{width:100%;height:42px;border:1px solid #dde2ec;background:#f8f9fc;border-radius:13px;padding:0 11px;color:#151821;margin-bottom:10px}.primary,.listHead button{border:0;border-radius:999px;font-weight:950;cursor:pointer}.primary{width:100%;height:48px;background:#f32334;color:#fff}.listHead{display:flex;align-items:center;justify-content:space-between;gap:10px}.listHead button{background:#151821;color:#fff;padding:10px 14px}.cards{display:grid;gap:12px}.card{border:1px solid #e5e8ef;border-radius:18px;background:#fbfcff;padding:15px}.cardTop{display:flex;justify-content:space-between;gap:10px;align-items:center}.card h3{margin:0}.card p{margin:8px 0;color:#697386}.mini{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.mini span{background:#eef1f6;border-radius:999px;padding:7px 10px;font-size:13px}.stockUse{margin-top:10px}.empty{background:#f8f9fb;border-radius:16px;padding:16px;color:#687080}ul{margin:10px 0 0;padding-left:20px;color:#4b5563}@media(max-width:980px){.page{padding:14px}.switchBar a{flex:1;text-align:center}.summaryGrid,.wrap{grid-template-columns:1fr}.summaryGrid{grid-template-columns:1fr 1fr}}
+    `}</style>
+  </main>
 }
-
-function Modal({ title, onClose, children }) { return <div className="modalOverlay" onMouseDown={onClose}><section className="modal" onMouseDown={e => e.stopPropagation()}><div className="modalHead"><h2>{title}</h2><button onClick={onClose}>×</button></div>{children}</section></div> }
-function CarModal({ car, user, onClose, updateCar, deleteCar, moneyPatch, addExpense, clearExpense, addNeededPart, toggleNeededPart, setNeededMoney, removeNeededPart, addBoughtPart, removeBoughtPart, addTask, toggleTask, removeTask, partInputs, setPartInputs, taskInputs, setTaskInputs, stockItems, stockInputs, setStockInputs, useStockForCar }) {
-  const cost = totalCost(car), carProfit = profit(car), share = car.status === 'satildi' ? carProfit / partners.length : 0, carExpenses = allExpenses(car), selectedExpense = partInputs[`expense-category-${car.id}`] || 'Otopark'
-  return <Modal title={car.title} onClose={onClose}><div className="modalSub"><span className={`status ${car.status}`}>{statusLabels[car.status]}</span><p>{[car.brand, car.model, car.plate].filter(Boolean).join(' • ') || 'Araç bilgisi eklenmedi'}</p></div><section className="topDetailGrid"><div className="editMainFields"><label>Statü<select value={car.status} onChange={e => updateCar(car.id, { status: e.target.value })}>{Object.entries(statusLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label>Araç Bedeli<input value={car.purchasePrice || ''} onChange={e => moneyPatch(car.id, 'purchasePrice', e.target.value)} placeholder="100.000" /></label><label>Satış<input value={car.salePrice || ''} onChange={e => moneyPatch(car.id, 'salePrice', e.target.value)} placeholder="450.000" /></label></div><div className="expenseBox"><h3>Masraf Ekle</h3><div className="expenseAdd"><select value={selectedExpense} onChange={e => setPartInputs({ ...partInputs, [`expense-category-${car.id}`]: e.target.value })}>{expenseOptions.map(name => <option key={name}>{name}</option>)}</select>{selectedExpense === 'Kendin Ekle' ? <input value={partInputs[`expense-custom-${car.id}`] || ''} onChange={e => setPartInputs({ ...partInputs, [`expense-custom-${car.id}`]: e.target.value })} placeholder="Masraf kategorisi yaz" /> : null}<input value={partInputs[`expense-amount-${car.id}`] || ''} onChange={e => setPartInputs({ ...partInputs, [`expense-amount-${car.id}`]: formatInputMoney(e.target.value) })} placeholder="Tutar" /><button onClick={() => addExpense(car.id)}>Ekle</button></div></div></section><section className="tasksBox importantBox"><h3>Görevler / Yapılacaklar</h3><div className="taskAdd"><input value={taskInputs[`task-title-${car.id}`] || ''} onChange={e => setTaskInputs({ ...taskInputs, [`task-title-${car.id}`]: e.target.value })} placeholder="Örn: Kaportacıya gönder" /><select value={taskInputs[`task-user-${car.id}`] || user} onChange={e => setTaskInputs({ ...taskInputs, [`task-user-${car.id}`]: e.target.value })}>{partners.map(name => <option key={name}>{name}</option>)}</select><button onClick={() => addTask(car.id)}>Görev Ekle</button></div><div className="list">{(car.tasks || []).map((task, index) => <div className="taskRow" key={task.id || index}><label><input type="checkbox" checked={!!task.done} onChange={() => toggleTask(car.id, index)} /><span className={task.done ? 'done' : ''}>{task.title}</span></label><small>{task.assignedTo || '-'}</small><button onClick={() => removeTask(car.id, index)}>×</button></div>)}</div></section><div className="columns importantColumns"><section><h3>Gerekli Parçalar</h3><div className="addLine"><input value={partInputs[`need-${car.id}`] || ''} onChange={e => setPartInputs({ ...partInputs, [`need-${car.id}`]: e.target.value })} placeholder="Örn: Sol far" /><button onClick={() => addNeededPart(car.id)}>Ekle</button></div><div className="list">{(car.neededParts || []).map(part => { const meta = partMeta(car, part); return <div className="neededRow" key={part.id}><label><input type="checkbox" checked={!!part.done} onChange={() => toggleNeededPart(car.id, part.id)} /><span className={part.done ? 'done' : ''}>{part.name}</span></label><input value={meta.price || ''} onChange={e => setNeededMoney(car.id, part, 'price', e.target.value)} placeholder="Parça fiyatı" /><input value={meta.cargo || ''} onChange={e => setNeededMoney(car.id, part, 'cargo', e.target.value)} placeholder="Kargo" /><button onClick={() => removeNeededPart(car.id, part)}>×</button></div> })}</div></section><section><h3>Alınan Parçalar</h3><div className="stockUseBox"><select value={stockInputs[`stock-${car.id}`] || ''} onChange={e => setStockInputs({ ...stockInputs, [`stock-${car.id}`]: e.target.value })}><option value="">Stoktan ürün seç</option>{(stockItems || []).filter(item => Number(item.quantity || 0) > 0).map(item => <option key={item.id} value={item.id}>{item.brand} - {item.productName}{item.partCode ? ` - ${item.partCode}` : ''} | Stok: {item.quantity}</option>)}</select><button onClick={() => useStockForCar(car.id)}>Stoktan Kullan</button></div><div className="buyGrid"><input value={partInputs[`bought-name-${car.id}`] || ''} onChange={e => setPartInputs({ ...partInputs, [`bought-name-${car.id}`]: e.target.value })} placeholder="Parça adı" /><input value={partInputs[`bought-price-${car.id}`] || ''} onChange={e => setPartInputs({ ...partInputs, [`bought-price-${car.id}`]: formatInputMoney(e.target.value) })} placeholder="Tutar" /><select value={partInputs[`bought-buyer-${car.id}`] || user} onChange={e => setPartInputs({ ...partInputs, [`bought-buyer-${car.id}`]: e.target.value })}>{partners.map(name => <option key={name}>{name}</option>)}</select><button onClick={() => addBoughtPart(car.id)}>Alındı Ekle</button></div><div className="list">{(car.boughtParts || []).map(part => <div className="boughtRow" key={part.id}><div><b>{part.name}</b><small>{part.buyer || '-'} aldı</small></div><strong>{formatMoney(toNumber(part.price))}</strong><button onClick={() => removeBoughtPart(car.id, part.id)}>×</button></div>)}</div></section></div><div className="numbers"><div><span>Toplam Maliyet</span><strong>{formatMoney(cost)}</strong></div><div><span>Satış</span><strong>{formatMoney(toNumber(car.salePrice))}</strong></div><div><span>Kâr / Zarar</span><strong className={carProfit >= 0 ? 'profit' : 'loss'}>{formatMoney(carProfit)}</strong></div><div><span>Kişi Başı Pay</span><strong>{car.status === 'satildi' ? formatMoney(share) : '-'}</strong></div></div><section className="expenseListBox"><h3>Eklenen Masraflar</h3>{carExpenses.length === 0 ? <p>Henüz masraf eklenmedi.</p> : <div className="list">{carExpenses.map(item => <div className="boughtRow" key={item.id}><div><b>{item.label}</b><small>Masraf kategorisi</small></div><strong>{formatMoney(item.amount)}</strong><button onClick={() => clearExpense(car.id, item)}>×</button></div>)}</div>}</section><textarea className="notes" placeholder="Araç notları" value={visibleNotes(car)} onChange={e => updateCar(car.id, { notes: notesWithMeta(e.target.value, metaOf(car)) })} /><div className="dangerRow"><button onClick={() => deleteCar(car.id)}>Aracı Sil</button></div></Modal>
-}
-
-function GlobalStyle() { return <style jsx global>{`
-*{box-sizing:border-box}body{margin:0;background:#101218;color:#eef1f7;font-family:Inter,Arial,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}.loginPage{min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at top,#272c3a,#101218 60%)}.loginCard{width:min(520px,100%);background:#fff;color:#161922;border-radius:30px;padding:34px;box-shadow:0 30px 90px rgba(0,0,0,.35)}.loginCard span,.topbar span{color:#f32334;font-size:12px;font-weight:950;letter-spacing:1.5px}.loginCard h1{font-size:44px;line-height:1;margin:12px 0}.loginCard p{color:#5c6470;line-height:1.6}.loginCard form{display:grid;gap:12px;margin:22px 0}.loginCard input,.loginCard button{height:54px;border-radius:16px;border:1px solid #dde1ea;padding:0 16px}.loginCard button,.topActions button,.carForm button{border:0;background:#f32334;color:#fff;font-weight:950}.page{min-height:100vh;padding:22px;background:#f4f6fb;color:#1b1f2a}.topbar{max-width:1360px;margin:0 auto 16px;display:flex;justify-content:space-between;gap:20px;align-items:flex-end}.topbar h1{font-size:clamp(30px,4vw,54px);line-height:1;margin:8px 0;color:#151821}.topbar p{color:#5b6270}.topActions{display:flex;gap:10px;flex-wrap:wrap}.topActions button,.ghost{border:0;border-radius:999px;padding:13px 17px;font-weight:950}.topActions .ghost{background:#151821;color:#fff}.errorBox{max-width:1360px;margin:0 auto 14px;background:#fee2e2;color:#991b1b;border-radius:18px;padding:14px;font-weight:900}.summaryGrid,.moneyGrid,.partnerGrid{max-width:1360px;margin:0 auto 14px;display:grid;gap:12px}.summaryGrid{grid-template-columns:repeat(4,1fr)}.moneyGrid{grid-template-columns:repeat(3,1fr)}.partnerGrid{grid-template-columns:repeat(3,1fr)}.summary,.moneyGrid>div,.partnerGrid>div,.homeHint{background:#fff;color:#151821;border:1px solid #e4e8f1;border-radius:22px;box-shadow:0 16px 55px rgba(23,27,38,.07);padding:16px;text-align:left}.homeHint{max-width:1360px;margin:0 auto 14px}.summary{border:0}.summary.active{outline:3px solid rgba(243,35,52,.15);border:1px solid #f32334}.summary span,.moneyGrid span,.partnerGrid span,.numbers span{display:block;color:#717989;font-size:13px;margin-bottom:7px}.summary strong,.moneyGrid strong,.partnerGrid strong{font-size:25px}.summary small{display:block;color:#8a93a3;margin-top:4px}.profit{color:#0b8d3a!important}.loss{color:#d72737!important}.carsPage,.tasksPage{max-width:1360px;margin:0 auto}.sectionHead{display:flex;gap:14px;align-items:center;margin:0 0 14px}.sectionHead h2{margin:0;font-size:30px;color:#151821}.sectionHead p{margin:4px 0 0;color:#667085}.backBtn{border:0;background:#151821;color:#fff;border-radius:999px;padding:11px 15px;font-weight:900}.carsGrid{max-width:1360px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:start}.empty{grid-column:1/-1;background:#fff;color:#151821;border-radius:24px;padding:28px}.miniCarCard{width:100%;text-align:left;border:0;background:#fff;color:#151821;border-radius:20px;padding:12px;box-shadow:0 12px 38px rgba(23,27,38,.07);min-height:92px;display:flex;flex-direction:column;justify-content:center}.compactCarTop{display:flex;align-items:center;justify-content:space-between;gap:8px}.compactCarTop .status{flex:0 0 auto}.miniCarCard h2{font-size:16px;line-height:1.15;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.miniCarCard p{color:#667085;margin:8px 0 0;font-size:13px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.status{display:inline-flex;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:950;background:#eef1f6;color:#303746}.status.gelecek{background:#fff3cd;color:#7a5500}.status.tamirde{background:#e7f0ff;color:#1554b3}.status.hazir{background:#e8f8ef;color:#0b7434}.status.satildi{background:#f1e8ff;color:#5d249a}.tasksPanel{background:#fff;color:#151821;border-radius:26px;padding:22px;box-shadow:0 18px 60px rgba(23,27,38,.08)}.taskList{display:grid;gap:10px}.taskRow{background:#fff;border:1px solid #e5e9f2;border-radius:16px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:10px}.taskRow label{display:flex;align-items:center;gap:9px;font-weight:850}.taskRow button{border:0;background:#151821;color:#fff;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:900}.taskVehicle{display:grid;gap:2px;color:#667085}.doneTask{opacity:.65}.modalOverlay{position:fixed;inset:0;z-index:200;background:rgba(10,13,20,.62);display:grid;place-items:center;padding:20px}.modal{width:min(1180px,100%);max-height:90vh;overflow:auto;background:#fff;color:#151821;border-radius:30px;box-shadow:0 40px 120px rgba(0,0,0,.35);padding:24px}.modalHead{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:16px}.modalHead h2{font-size:32px;line-height:1.05;margin:0}.modalHead button{border:0;background:#eef1f6;border-radius:50%;width:42px;height:42px;font-size:26px}.modalSub{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}.modalSub p{margin:0;color:#667085}.carForm.simple{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:12px}.carForm input,.editMainFields input,.editMainFields select,.expenseAdd input,.expenseAdd select,.addLine input,.buyGrid input,.buyGrid select,.taskAdd input,.taskAdd select,.stockUseBox select,.notes,.neededRow input{border:1px solid #dde2ec;background:#f8f9fc;border-radius:15px;padding:13px;min-width:0;color:#151821}.carForm button{border-radius:15px;padding:0 18px}.topDetailGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}.editMainFields{background:#f8f9fc;border:1px solid #e5e9f2;border-radius:22px;padding:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.editMainFields label{display:grid;gap:6px;color:#6a7280;font-size:12px;font-weight:850}.expenseBox,.expenseListBox,.columns section,.tasksBox{background:#f8f9fc;border:1px solid #e5e9f2;border-radius:22px;padding:16px}.expenseBox h3,.expenseListBox h3,.columns h3,.tasksBox h3{margin:0 0 12px}.expenseAdd{display:grid;grid-template-columns:1fr 1fr .7fr auto;gap:8px}.expenseAdd button,.addLine button,.buyGrid button,.taskAdd button,.stockUseBox button{border:0;background:#151821;color:#fff;border-radius:14px;padding:0 14px;font-weight:900}.expenseAdd button,.stockUseBox button{background:#f32334}.numbers{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}.numbers div{background:#f7f9fc;border-radius:18px;padding:13px}.numbers strong{font-size:22px}.columns{display:grid;grid-template-columns:1fr 1.25fr;gap:16px}.importantBox{margin:12px 0 16px;border-color:#dce8ff;background:#f5f9ff}.importantColumns{margin-bottom:16px}.addLine,.stockUseBox{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:12px}.list{display:grid;gap:8px;margin-top:12px}.listRow,.boughtRow,.neededRow{background:#fff;border:1px solid #e5e9f2;border-radius:15px;padding:11px;display:flex;align-items:center;justify-content:space-between;gap:10px}.neededRow{display:grid;grid-template-columns:1.4fr .8fr .8fr auto}.neededRow label,.listRow label{display:flex;align-items:center;gap:8px}.listRow button,.boughtRow button,.neededRow button{border:0;background:#eef1f6;border-radius:10px;width:30px;height:30px}.done{text-decoration:line-through;color:#8891a2}.buyGrid{display:grid;grid-template-columns:1.4fr .8fr .8fr auto;gap:8px}.boughtRow div{display:grid;gap:3px}.boughtRow small{color:#697386}.boughtRow strong{white-space:nowrap}.taskAdd{display:grid;grid-template-columns:1fr .5fr auto;gap:8px}.notes{width:100%;margin-top:16px;min-height:76px;resize:vertical}.dangerRow{display:flex;justify-content:flex-end;margin-top:16px}.dangerRow button{border:0;background:#151821;color:#fff;border-radius:999px;padding:12px 16px;font-weight:900}@media(max-width:980px){.page{padding:14px}.topbar{display:grid}.summaryGrid{grid-template-columns:repeat(2,1fr)}.moneyGrid,.partnerGrid,.carsGrid,.carForm.simple,.topDetailGrid,.editMainFields,.numbers,.columns,.buyGrid,.taskAdd,.stockUseBox,.expenseAdd,.neededRow{grid-template-columns:1fr}.topActions button{width:100%}.topActions{width:100%}.summary strong,.moneyGrid strong,.partnerGrid strong{font-size:21px}.modalOverlay{padding:8px;align-items:end}.modal{max-height:92vh;border-radius:24px 24px 0 0;padding:16px}.modalHead h2{font-size:23px}.carsGrid{grid-template-columns:repeat(2,1fr);gap:10px}.miniCarCard{padding:11px;min-height:86px}.miniCarCard h2{font-size:15px}.sectionHead{align-items:flex-start;display:grid}}@media(max-width:430px){.carsGrid{grid-template-columns:repeat(2,1fr)}.summaryGrid{grid-template-columns:1fr 1fr}}
-`}</style> }
