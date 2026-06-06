@@ -4,6 +4,12 @@ function toNumber(value) {
   return Number(String(value || '').replace(',', '.')) || 0
 }
 
+function toQuantity(value, fallback = 1) {
+  if (value === undefined || value === null || value === '') return fallback
+  const quantity = Number(value)
+  return Number.isFinite(quantity) ? quantity : fallback
+}
+
 export default async function handler(req, res) {
   const { id } = req.query
 
@@ -15,7 +21,7 @@ export default async function handler(req, res) {
       if (body.brand !== undefined) data.brand = body.brand || 'Togg'
       if (body.productName !== undefined) data.productName = String(body.productName || '').trim()
       if (body.partCode !== undefined) data.partCode = body.partCode || ''
-      if (body.quantity !== undefined) data.quantity = Number(body.quantity || 1)
+      if (body.quantity !== undefined) data.quantity = toQuantity(body.quantity, 0)
       if (body.buyPrice !== undefined) data.buyPrice = toNumber(body.buyPrice)
       if (body.salePrice !== undefined) data.salePrice = toNumber(body.salePrice)
       if (body.boughtBy !== undefined) data.boughtBy = body.boughtBy || ''
@@ -42,6 +48,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   } catch (error) {
     console.error(error)
-    return res.status(500).json({ error: 'Server error' })
+    return res.status(500).json({ error: error.message || 'Server error' })
   }
 }
